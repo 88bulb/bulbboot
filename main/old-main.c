@@ -42,6 +42,9 @@ static uint8_t ble_mac_addr[6] = {};
 static uint8_t mcast_addr[16] = {};
 static uint8_t mcast_addr_len = 0; // total len, group id + bits
 
+static char ssid_fingerprint[16] = {};
+static uint8_t half_digest[16] = {};
+
 #define AP_RECORD_MAX (20)
 
 static uint16_t ap_record_max = AP_RECORD_MAX;
