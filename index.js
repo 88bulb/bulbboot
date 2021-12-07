@@ -6,8 +6,20 @@ const net = require('net');
 const server = net.createServer((socket) => {
     socket.on('data', data => {
         console.log(data.toString())
-        const rs = fs.createReadStream('./hello-world.bin')
-        rs.pipe(socket)
+        const filepath = './hello-world.bin'
+        fs.stat(filepath, (err, stats) => {
+            if (err) {
+                socket.end();     
+            } else {
+                let buf = Buffer.alloc(4)
+                buf.writeUInt32LE(stats.size)
+                console.log(buf)
+                socket.write(buf, () => {
+                    fs.createReadStream('./hello-world.bin').pipe(socket)
+                })
+            } 
+        })
+        
     });
 }).on('error', (err) => {
   // Handle errors here.
