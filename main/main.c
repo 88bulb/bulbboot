@@ -6,8 +6,6 @@
 #include "freertos/event_groups.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
-#include "driver/gpio.h"
-#include "driver/ledc.h"
 
 #include "nvs_flash.h"
 #include "esp_err.h"
@@ -36,38 +34,34 @@ esp_err_t last_will_error;
 static StaticEventGroup_t eg_data;
 EventGroupHandle_t ev;
 
-const ledc_channel_config_t lc[5] = {
-    {.channel = LEDC_CHANNEL_0,
-     .duty = 0,
-     .gpio_num = 3,
-     .speed_mode = LEDC_LOW_SPEED_MODE,
-     .hpoint = 0,
-     .timer_sel = LEDC_TIMER_1},
-    {.channel = LEDC_CHANNEL_1,
-     .duty = 0,
-     .gpio_num = 0,
-     .speed_mode = LEDC_LOW_SPEED_MODE,
-     .hpoint = 0,
-     .timer_sel = LEDC_TIMER_1},
-    {.channel = LEDC_CHANNEL_2,
-     .duty = 0,
-     .gpio_num = 1,
-     .speed_mode = LEDC_LOW_SPEED_MODE,
-     .hpoint = 0,
-     .timer_sel = LEDC_TIMER_1},
-    {.channel = LEDC_CHANNEL_3,
-     .duty = 0,
-     .gpio_num = 18,
-     .speed_mode = LEDC_LOW_SPEED_MODE,
-     .hpoint = 0,
-     .timer_sel = LEDC_TIMER_1},
-    {.channel = LEDC_CHANNEL_4,
-     .duty = 0,
-     .gpio_num = 19,
-     .speed_mode = LEDC_LOW_SPEED_MODE,
-     .hpoint = 0,
-     .timer_sel = LEDC_TIMER_1},
-};
+static nvs_handle_t nvs;
+
+uint16_t read_aging_minutes() {
+    esp_err_t err;
+    uint16_t minutes;
+    err = nvs_get_u16(nvs, "aging_minutes", &minutes);
+    if (err == ESP_OK) {
+        return minutes;
+    } else {
+        return 0;
+    }
+}
+
+esp_err_t write_aging_minutes(uint16_t minutes) {
+    return nvs_set_u16(nvs, "aging_minutes", minutes);
+}
+
+static void nvs_init () {
+    /* init nvs flash */
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+        err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+    nvs_open("nvs", NVS_READWRITE, &nvs);
+}
 
 static void last_will(last_will_t reason, esp_err_t err) {
     last_will_reason = reason;
@@ -76,7 +70,7 @@ static void last_will(last_will_t reason, esp_err_t err) {
     vTaskDelay(portMAX_DELAY);
 }
 
-static esp_netif_t *init_wifi() {
+static esp_netif_t *wifi_init() {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_t *netif = esp_netif_create_default_wifi_sta();
@@ -121,63 +115,30 @@ static void got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
 
 /* (freertos) main task */
 void app_main(void) {
-    bool found;
     esp_err_t err;
     esp_netif_t *sta_netif = NULL;
+    bool found;
     wifi_ap_record_t ap;
     esp_netif_ip_info_t ip_info;
 
     ev = xEventGroupCreateStatic(&eg_data);
 
-    /* initialize led */
-    ledc_timer_config_t ledc_timer = {
-        .duty_resolution = LEDC_TIMER_8_BIT, // resolution of PWM duty
-        .freq_hz = 5000,                     // frequency of PWM signal
-        .speed_mode = LEDC_LOW_SPEED_MODE,   // timer mode
-        .timer_num = LEDC_TIMER_1,           // timer index
-        .clk_cfg = LEDC_AUTO_CLK,            // Auto select the source clock
-    };
-    ledc_timer_config(&ledc_timer);
-    for (int ch = 0; ch < 5; ch++) {
-        ledc_channel_config(&lc[ch]);
-    }
-    ledc_fade_func_install(0);
+    nvs_init();
+    led_init();
+    wifi_init();
 
-    /* init nvs flash */
-    err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-        err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(err);
-
-    uint8_t tuya_test = 0;
-    uint16_t tuya_aged_time = 0;
-
-    nvs_handle_t nvs_handle;
-    nvs_open("storage", NVS_READWRITE, &nvs_handle);
-    nvs_get_u8(nvs_handle, "tuya_test", &tuya_test);
-    nvs_get_u16(nvs_handle, "tuya_aged_time", &tuya_aged_time);
-
-    sta_netif = init_wifi();
-
-    if (tuya_test == 0) {
-        // before aging (only once)
+    uint16_t age = read_aging_minutes();
+    if (age < 50) {
         wifi_scan("tuya_mdev_test1", true, &found, &ap);
         if (found) {
-            // do test1 router found 2 minutes
-            // then 50 minutes aging (aging time persistent)
-            // and 5 cycles flashing before restoring aging if power
-            // interrupted
-        } else {
-            // do test1 router not found
+            aging_test1(age);
         }
-    } else if (tuya_test == 1) {
-        // after aging (many times, but could be disabled)
+        vTaskDelay(portMAX_DELAY);
+    } else if (age == 50) {
         wifi_scan("tuya_mdev_test2", true, &found, &ap);
         if (found) {
-        } else {
+            // this function should loop forever according to definition
+            aging_test2();
         }
     }
 
