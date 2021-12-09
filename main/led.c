@@ -4,7 +4,7 @@
 #include "bulbboot.h"
 
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
-                         uint32_t w) {
+                                uint32_t w) {
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, r);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, g);
@@ -85,8 +85,7 @@ void led_init() {
     }
 
     ledc_fade_func_install(0);
-
-    four_color_set_duty(128, 128, 128, 128);
+    five_color_set_duty(0, 0, 0, 128, 128);
 }
 
 void aging_test1(uint16_t aged_minutes) {
@@ -124,8 +123,8 @@ void aging_test1(uint16_t aged_minutes) {
     if (aged_minutes < 20) {
         five_color_set_duty(0, 0, 0, 255, 0);
         do {
-            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS); 
-            aged_minutes++; 
+            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
+            aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 20);
     }
@@ -133,8 +132,8 @@ void aging_test1(uint16_t aged_minutes) {
     if (aged_minutes < 40) {
         five_color_set_duty(0, 0, 0, 0, 255);
         do {
-            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS); 
-            aged_minutes++; 
+            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
+            aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 40);
     }
@@ -142,11 +141,14 @@ void aging_test1(uint16_t aged_minutes) {
     if (aged_minutes < 50) {
         five_color_set_duty(255, 255, 255, 0, 0);
         do {
-            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS); 
-            aged_minutes++; 
+            vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
+            aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 50);
     }
+
+    // finished, low intensity green light
+    five_color_set_duty(0, 64, 0, 0, 0);
 }
 
 void aging_test2() {
@@ -178,4 +180,3 @@ void aging_test2() {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
-

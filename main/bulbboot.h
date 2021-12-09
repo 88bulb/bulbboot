@@ -53,17 +53,18 @@ extern char ssid_token_str[16];
 extern uint8_t sha88[11];
 extern char sha88_str[32];
 
-/* freertos task */
-void ble_adv_scan(void *pvParameters);
-
-/* freertos tasks */
-void aging_test1(uint16_t aged_minutes);
-void aging_test2();
-
+/* initialize led in pwm mode */
 void led_init();
 
 /* read and write tuya aged time (in minutes) */
-uint16_t read_aging_minutes();
-esp_err_t write_aging_minutes(uint16_t minutes);
+esp_err_t write_aging_minutes(uint8_t minutes);
+
+/* these functions run in main task */
+void aging_test1(uint16_t aged_minutes);
+void aging_test2();
+
+/* freertos task */
+void ble_adv_scan(void *pvParameters);
 
 #endif
+
