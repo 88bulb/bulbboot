@@ -3,6 +3,8 @@
 
 #include "bulbboot.h"
 
+static const char *TAG = "bulbboot";
+
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
                                 uint32_t w) {
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, r);
@@ -88,8 +90,15 @@ void led_init() {
     five_color_set_duty(0, 0, 0, 128, 128);
 }
 
-void aging_test1(uint16_t aged_minutes) {
+void aging_test1(uint8_t aged_minutes) {
+    if (aged_minutes) {
+        ESP_LOGI(TAG, "continuing aging test");
+    } else {
+        ESP_LOGI(TAG, "starting aging test");
+    }
+
     if (aged_minutes == 0) {
+        ESP_LOGI(TAG, "cycling led colors for 2 minutes");
         /* five seconds per cycle, 24 cycles = 2 minutes, right? */
         for (int i = 0; i < 24; i++) {
             five_color_set_duty(255, 0, 0, 0, 0);
@@ -106,6 +115,7 @@ void aging_test1(uint16_t aged_minutes) {
     }
 
     if (aged_minutes) {
+        ESP_LOGI(TAG, "cycling all leds 5 times before continuing");
         for (int i = 0; i < 5; i++) {
             five_color_set_duty(255, 0, 0, 0, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -121,37 +131,48 @@ void aging_test1(uint16_t aged_minutes) {
     }
 
     if (aged_minutes < 20) {
+        ESP_LOGI("aging cold white led at full brightness");
         five_color_set_duty(0, 0, 0, 255, 0);
         do {
+            ESP_LOGI("%u minutes left", 20 - aged_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 20);
+        ESP_LOGI("cold white led aging finished");
     }
 
     if (aged_minutes < 40) {
+        ESP_LOGI("aging warm white led at full brightness");
         five_color_set_duty(0, 0, 0, 0, 255);
         do {
+            ESP_LOGI("%u minutes left", 40 - aged_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 40);
+        ESP_LOGI("warm white led aging finished");
     }
 
     if (aged_minutes < 50) {
+        ESP_LOGI("aging color leds at full brightness");
         five_color_set_duty(255, 255, 255, 0, 0);
         do {
+            ESP_LOGI("%u minutes left", 50 - aged_munites);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 50);
+        ESP_LOGI("color led aging finished");
     }
 
     // finished, low intensity green light
     five_color_set_duty(0, 64, 0, 0, 0);
+    ESP_LOGI("all aging test finished, green on");
 }
 
 void aging_test2() {
+    ESP_LOGI("breathing all leds endlessly");
     five_color_set_duty(0, 0, 0, 0, 0);
     while (1) {
         five_color_fade(255, 0, 0, 0, 0, 1000);

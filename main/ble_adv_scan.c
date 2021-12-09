@@ -18,7 +18,7 @@
 
 #include "bulbboot.h"
 
-static const char *TAG = "rootbulb";
+static const char *TAG = "bulbboot";
 
 /**
  * b01bca57 0f  xx:xx:xx:xx:xx:xx   xx:xx:xx:xx

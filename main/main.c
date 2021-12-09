@@ -21,7 +21,7 @@
 
 #define PORT (6016)
 
-static const char *TAG = "rootbulb";
+static const char *TAG = "bulbboot";
 
 char ssid_token[4] = {0};
 char ssid_token_str[16] = {0};
