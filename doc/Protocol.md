@@ -1,3 +1,15 @@
+# BulbBoot
+
+BulbBoot是灯的
+
+
+
+
+
+
+
+
+
 # BulbCast
 
 BulbCast是基础灯通讯协议。全部使用BLE Advertisement实现，仅使用manufacturer data属性，最多有26字节容量，含4字节的magic和1字节的命令码。
