@@ -35,6 +35,8 @@ int last_will_errno;
 static StaticEventGroup_t eg_data;
 EventGroupHandle_t ev;
 
+static esp_event_handler_instance_t got_ip_handle;
+
 static nvs_handle_t nvs;
 
 static uint8_t read_aging_minutes() {
@@ -184,6 +186,7 @@ void app_main(void) {
         .offset = ota1->address,
         .size = ota1->size,
     };
+
     esp_image_metadata_t meta;
     err = esp_image_verify(ESP_IMAGE_VERIFY, &ota1_pos, &meta);
     if (err != ESP_OK) {
@@ -231,15 +234,17 @@ void app_main(void) {
     asdf += sizeof(wifi_config.sta.ssid);
     strcpy(asdf, TAG);
     for (int i = 0; i < 8; i++) {
-        if (asdf[i] == 'b') asdf[i] = '6';
-        if (asdf[i] == 'o') asdf[i] = '0';
+        if (asdf[i] == 'b')
+            asdf[i] = '6';
+        if (asdf[i] == 'o')
+            asdf[i] = '0';
     }
 
-    ESP_LOGI(TAG, "wifi pass: %s", (char*)wifi_config.sta.password);
-    
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip, NULL, (void *)&found));
+        IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip, NULL, &got_ip_handle));
+
     ESP_ERROR_CHECK(esp_wifi_connect());
 
     /* wait at most 30 seconds */
@@ -293,8 +298,6 @@ void app_main(void) {
         ota1_written += len;
     }
     LAST_WILL_COND(ota1_written < fw_size, OTA_FIRMWARE_UNDERSIZE);
-
-    ESP_LOGI(TAG, "%d bytes written into ota1 partition", ota1_written);
 
 sleepboot:
     bootloader_common_update_rtc_retain_mem(&ota1_pos, true);
