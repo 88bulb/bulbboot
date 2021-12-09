@@ -1,7 +1,7 @@
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 
-#include "rootbulb.h"
+#include "bulbboot.h"
 
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
                          uint32_t w) {

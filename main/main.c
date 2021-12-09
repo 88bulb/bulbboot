@@ -17,7 +17,7 @@
 #include "esp_wifi.h"
 #include "bootloader_common.h"
 
-#include "rootbulb.h"
+#include "bulbboot.h"
 
 #define PORT (6016)
 
@@ -117,9 +117,9 @@ static void got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
 void app_main(void) {
     esp_err_t err;
     esp_netif_t *sta_netif = NULL;
+    esp_netif_ip_info_t ip_info;
     bool found;
     wifi_ap_record_t ap;
-    esp_netif_ip_info_t ip_info;
 
     ev = xEventGroupCreateStatic(&eg_data);
 

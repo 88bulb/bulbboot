@@ -16,7 +16,7 @@
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
 
-#include "rootbulb.h"
+#include "bulbboot.h"
 
 static const char *TAG = "rootbulb";
 
@@ -33,8 +33,8 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
     // little endian in air packet
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_BT);
-    if (data[5] != mac[5] || data[6] != mac[4] || data[7] != mac[3] ||
-        data[8] != mac[2] || data[9] != mac[1] || data[10] != mac[0])
+    if (data[5] != mac[0] || data[6] != mac[1] || data[7] != mac[2] ||
+        data[8] != mac[3] || data[9] != mac[4] || data[10] != mac[5])
         return;
 
     const char hex_char[16] = "0123456789abcdef";
@@ -141,8 +141,8 @@ void ble_adv_scan(void *pvParameters) {
         .set_scan_rsp = false,
         .include_name = false,
         .include_txpower = false,
-        .min_interval = 0x0006,
-        .max_interval = 0x0010,
+        .min_interval = 0x0000,
+        .max_interval = 0x0000,
         .appearance = 0x00,
         .manufacturer_len = 5,
         .p_manufacturer_data = adv_mfr_data,

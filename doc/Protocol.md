@@ -63,7 +63,7 @@ static const esp_ble_adv_data_t adv_data_default = {
 
 ### magic
 
-使用`b0lbca57`作为每个数据包开头，该magic原则上和应用层的一致。
+使用`b0lbca57`（which is a hexspeak for bulbcast）作为每个数据包开头，该magic原则上和应用层的一致。
 
 
 
