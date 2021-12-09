@@ -1,5 +1,5 @@
 {
-  "name": "rootbulb",
+  "name": "bulbboot",
   "version": "1.0.0",
   "description": "ESP-IDF template app ====================",
   "main": "index.js",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gingerologist/rootbulb.git"
+    "url": "git+https://github.com/gingerologist/bulbboot.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/gingerologist/rootbulb/issues"
+    "url": "https://github.com/gingerologist/bulbboot/issues"
   },
-  "homepage": "https://github.com/gingerologist/rootbulb#readme",
+  "homepage": "https://github.com/gingerologist/bulbboot#readme",
   "dependencies": {
     "express": "^4.17.1"
   },
