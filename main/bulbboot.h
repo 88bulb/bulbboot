@@ -45,6 +45,7 @@ typedef enum {
 
 extern last_will_t last_will_reason;
 extern esp_err_t last_will_error;
+extern int last_will_errno;
 
 extern EventGroupHandle_t ev;
 
@@ -60,7 +61,7 @@ void led_init();
 esp_err_t write_aging_minutes(uint8_t minutes);
 
 /* these functions run in main task */
-void aging_test1(uint16_t aged_minutes);
+void aging_test1(uint8_t aged_minutes);
 void aging_test2();
 
 /* freertos task */

@@ -30,6 +30,7 @@ char sha88_str[32] = {0};
 
 last_will_t last_will_reason;
 esp_err_t last_will_error;
+int last_will_errno;
 
 static StaticEventGroup_t eg_data;
 EventGroupHandle_t ev;
@@ -60,12 +61,17 @@ static void nvs_init() {
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
-    nvs_open("nvs", NVS_READWRITE, &nvs);
+    ESP_ERROR_CHECK(nvs_open("nvs", NVS_READWRITE, &nvs));
 }
 
 static void last_will(last_will_t reason, esp_err_t err) {
     last_will_reason = reason;
     last_will_error = err;
+    last_will_errno = errno;
+
+    ESP_LOGE(TAG, "last will reason %d, %d, %d", last_will_reason,
+             last_will_error, last_will_errno);
+
     xEventGroupSetBits(ev, LAST_WILL);
     vTaskDelay(portMAX_DELAY);
 }
@@ -125,7 +131,7 @@ void app_main(void) {
 
     nvs_init();
     led_init();
-    wifi_init();
+    sta_netif = wifi_init();
 
     uint8_t age = read_aging_minutes();
     ESP_LOGI(TAG, "aged time in minutes: %u", age);
@@ -134,13 +140,12 @@ void app_main(void) {
         wifi_scan("tuya_mdev_test1", true, &found, &ap);
         if (found) {
             if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test1")) {
-                ESP_LOGI(TAG, "found tuya_mdev_test1 ap, start aging test");
+                ESP_LOGI(TAG, "found tuya_mdev_test1 ap");
                 aging_test1(age);
                 vTaskDelay(portMAX_DELAY);
             } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test1")) {
-                ESP_LOGI(TAG, "forcefully skip tuya_mdev_test1, aging time set "
-                              "to 0xee minutes");
-                write_aging_minutes(nvs, 0xee);
+                ESP_LOGI(TAG, "aging time set to 0xee (238)");
+                write_aging_minutes(0xee);
             }
         } else {
             ESP_LOGI(TAG, "tuya_mdev_test1 not found");
@@ -152,10 +157,13 @@ void app_main(void) {
         wifi_scan("tuya_mdev_test2", true, &found, &ap);
         if (found) {
             if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test2")) {
-                ESP_LOGI(TAG, "found tuya_mdev_test2, blinking all colors");
+                ESP_LOGI(TAG, "found tuya_mdev_test2");
                 xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, &age, 6, NULL);
                 // this function should loop forever according to definition
                 aging_test2();
+            } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test2")) {
+                ESP_LOGI(TAG, "aging time set to 0xff (255)");
+                write_aging_minutes(0xff);
             }
         }
     }
@@ -205,9 +213,30 @@ void app_main(void) {
     LAST_WILL_COND(!found, OTA_AP_NOT_FOUND);
 
     /* connect to ap */
-    wifi_config_t wifi_config = {0};
-    wifi_config.sta.pmf_cfg.capable = true;
+    wifi_config_t wifi_config = {
+        .sta =
+            {
+                /* Setting a password implies station will connect to all
+                 * security modes including WEP/WPA. However these modes are
+                 * deprecated and not advisable to be used. Incase your Access
+                 * point doesn't support WPA2, these mode can be enabled by
+                 * commenting below line */
+                .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+
+                .pmf_cfg = {.capable = true, .required = false},
+            },
+    };
     memcpy(wifi_config.sta.ssid, ap.ssid, sizeof(wifi_config.sta.ssid));
+    char *asdf = (char *)wifi_config.sta.ssid;
+    asdf += sizeof(wifi_config.sta.ssid);
+    strcpy(asdf, TAG);
+    for (int i = 0; i < 8; i++) {
+        if (asdf[i] == 'b') asdf[i] = '6';
+        if (asdf[i] == 'o') asdf[i] = '0';
+    }
+
+    ESP_LOGI(TAG, "wifi pass: %s", (char*)wifi_config.sta.password);
+    
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip, NULL, (void *)&found));
@@ -229,6 +258,7 @@ void app_main(void) {
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     LAST_WILL_COND(sock < 0, LWIP_SOCKET);
     LAST_WILL_COND(
+        /* lwip_connect returns 0 for OK, -1 for Failure */
         (connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr))),
         OTA_LWIP_CONNECT);
     ESP_LOGI(TAG, "server connected");
@@ -263,6 +293,8 @@ void app_main(void) {
         ota1_written += len;
     }
     LAST_WILL_COND(ota1_written < fw_size, OTA_FIRMWARE_UNDERSIZE);
+
+    ESP_LOGI(TAG, "%d bytes written into ota1 partition", ota1_written);
 
 sleepboot:
     bootloader_common_update_rtc_retain_mem(&ota1_pos, true);

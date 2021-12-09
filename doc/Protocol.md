@@ -87,6 +87,10 @@ static const esp_ble_adv_data_t adv_data_default = {
 
 
 
+Reference: https://macaddresschanger.com/what-is-bluetooth-address-BD_ADDR
+
+
+
 ## 量产测试
 
 量产测试基本按照涂鸦的量产测试要求，简述如下：
@@ -119,3 +123,16 @@ static const esp_ble_adv_data_t adv_data_default = {
 ## 其它
 
 `ota`从连接指定的wifi ap开始，系统最终会给一个`STA_GOT_IP`事件表示已经成功通过DHCP获得地址；如果中间遇到错误，程序不仔细检查底层的错误原因，直接重启，设置的超时时间为15秒。
+
+
+
+
+
+```
+b0:1b:ca:57::0f::[target mac]::[ssid token]::[sha88]
+
+
+b0:1b:ca:57::0f::7c:df:a1:61:fa:0a::a5:a5:a5:a5::00:11:22:33:44:55:66:77:88:99:aa
+b01bca570f7cdfa161fa0aa5a5a5a500112233445566778899aa
+```
+

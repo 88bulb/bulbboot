@@ -128,7 +128,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event,
 }
 
 void ble_adv_scan(void *pvParameters) {
-    uint8_t *age = (uint8_t pvParameters);
+    uint8_t *age = (uint8_t *)pvParameters;
     uint8_t adv_mfr_data[32] = {0xb0, 0x1b, 0xca, 0x57, 0x00, 0x02, 0x00, 0x00};
     adv_mfr_data[7] = *age;
 
@@ -166,7 +166,7 @@ void ble_adv_scan(void *pvParameters) {
     adv_mfr_data[6] = 0x01; // type, last will
     adv_mfr_data[7] = last_will_reason;
     adv_mfr_data[8] = last_will_error;
-    adv_mfr_data[9] = (errno);
+    adv_mfr_data[9] = last_will_errno;
     ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
     xEventGroupWaitBits(ev, LAST_WILL_ADV_START_COMPLETE, pdFALSE, pdFALSE,
                         portMAX_DELAY);

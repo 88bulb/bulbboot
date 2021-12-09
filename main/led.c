@@ -1,3 +1,4 @@
+#include "esp_log.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 
@@ -131,48 +132,48 @@ void aging_test1(uint8_t aged_minutes) {
     }
 
     if (aged_minutes < 20) {
-        ESP_LOGI("aging cold white led at full brightness");
+        ESP_LOGI(TAG, "aging cold white led at full brightness");
         five_color_set_duty(0, 0, 0, 255, 0);
         do {
-            ESP_LOGI("%u minutes left", 20 - aged_minutes);
+            ESP_LOGI(TAG, "%u minutes left", 20 - aged_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 20);
-        ESP_LOGI("cold white led aging finished");
+        ESP_LOGI(TAG, "cold white led aging finished");
     }
 
     if (aged_minutes < 40) {
-        ESP_LOGI("aging warm white led at full brightness");
+        ESP_LOGI(TAG, "aging warm white led at full brightness");
         five_color_set_duty(0, 0, 0, 0, 255);
         do {
-            ESP_LOGI("%u minutes left", 40 - aged_minutes);
+            ESP_LOGI(TAG, "%u minutes left", 40 - aged_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 40);
-        ESP_LOGI("warm white led aging finished");
+        ESP_LOGI(TAG, "warm white led aging finished");
     }
 
     if (aged_minutes < 50) {
-        ESP_LOGI("aging color leds at full brightness");
+        ESP_LOGI(TAG, "aging color leds at full brightness");
         five_color_set_duty(255, 255, 255, 0, 0);
         do {
-            ESP_LOGI("%u minutes left", 50 - aged_munites);
+            ESP_LOGI(TAG, "%u minutes left", 50 - aged_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
             aged_minutes++;
             write_aging_minutes(aged_minutes);
         } while (aged_minutes < 50);
-        ESP_LOGI("color led aging finished");
+        ESP_LOGI(TAG, "color led aging finished");
     }
 
     // finished, low intensity green light
     five_color_set_duty(0, 64, 0, 0, 0);
-    ESP_LOGI("all aging test finished, green on");
+    ESP_LOGI(TAG, "all aging test finished, green on");
 }
 
 void aging_test2() {
-    ESP_LOGI("breathing all leds endlessly");
+    ESP_LOGI(TAG, "breathing all leds endlessly");
     five_color_set_duty(0, 0, 0, 0, 0);
     while (1) {
         five_color_fade(255, 0, 0, 0, 0, 1000);
