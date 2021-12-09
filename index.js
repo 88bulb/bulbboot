@@ -1,7 +1,7 @@
 const fs = require('fs')
 const net = require('net')
 
-fs.readFile('hello-world.bin', (err, buf) => {
+fs.readFile('assets/hello-world.bin', (err, buf) => {
   if (err) return
   const size = Buffer.alloc(4)
   const server = net.createServer(socket =>
