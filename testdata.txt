@@ -1,8 +1,0 @@
-# sha256 digest at the end of hello-world.bin
-
-afc7 aa13 b6d6 40e9 a437 0aff 23ff dc4c
-bd7d 3192 7f5a 0487 f7d9 d79e 401f 6f98 
-
-b01bca570f0afa61a1df7c8964bbaaafc7aa13b6d640e9a4370a
-
-7CDFA161FA0A

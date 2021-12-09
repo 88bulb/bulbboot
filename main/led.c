@@ -85,6 +85,8 @@ void led_init() {
     }
 
     ledc_fade_func_install(0);
+
+    four_color_set_duty(128, 128, 128, 128);
 }
 
 void aging_test1(uint16_t aged_minutes) {

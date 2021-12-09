@@ -128,10 +128,16 @@ void app_main(void) {
     wifi_init();
 
     uint16_t age = read_aging_minutes();
+
+    ESP_LOGI(TAG, "aged time in aging test: %u", age); 
+
     if (age < 50) {
         wifi_scan("tuya_mdev_test1", true, &found, &ap);
         if (found) {
+            ESP_LOGI(TAG, "found tuya_mdev_test1 ap, entering test1");
             aging_test1(age);
+        } else {
+            ESP_LOGI(TAG, "tuya_mdev_test1 ap not found, normal white");
         }
         vTaskDelay(portMAX_DELAY);
     } else if (age == 50) {
