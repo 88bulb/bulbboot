@@ -25,49 +25,31 @@
 
 
 
-技术上，`BulbBoot`是第二级启动器，位于`ota0`分区，不是esp32系统通常位于`0x8000`地址的bootloader；`BulbBoot`利用esp-idf提供的公开api完成功能，不修改bootloader也不使用hook。
+技术上，`BulbBoot`是第二级启动器，位于`ota0`分区，不是esp32系统通常位于`0x8000`地址的bootloader；`BulbBoot`利用esp-idf提供的公开api完成功能，不修改bootloader也不使用hook。0
 
 
-
-`BulbBoot`使用`ota0`和`ota1`分区命名，是因为esp32平台的设计限制，app分区的subtype只能是factory, test, 和ota_x (x = 0..n)；`BulbBoot`并不使用esp-idf中提供的ota升级（a/b升级）功能，而是使用Deep Sleep方式载入应用（史称Sleep Boot），升级固件时会使用esp-idf提供的partition读写，app镜像完整性检查，和`bootloader_common.h`提供的写入启动镜像地址到rtc mem的功能。
-
-
-
-## 协议格式
-
-控制器（网关）和灯泡均只使用BLE Advertisement，仅使用manufacturer data属性，最多有26字节容量，每个命令头部以4字节的magic和1字节的命令码开始。
-
-
-
-为了能让manufacturer data的容量可以达到26字节，必须关闭所有可选在蓝牙广播里的所有其它字段，包括name, txpower, slave connection interval range (min/max interval set to 0)，service uuid，service data等参数，例如选择Bluedroid协议栈时adv_data的设置如下。
-
-```c
-static const esp_ble_adv_data_t adv_data_default = {
-    .set_scan_rsp = false,
-    .include_name = false,
-    .include_txpower = false,
-    .min_interval = 0x0000, // important!
-    .max_interval = 0x0000, // important!
-    .appearance = 0x00,
-    .manufacturer_len = 26,         
-    .p_manufacturer_data = &out_mfr_data[0],
-    .service_data_len = 0,
-    .p_service_data = NULL,
-    .service_uuid_len = 0,
-    .p_service_uuid = NULL,
-    .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
-};
-```
-
-
-
-### magic
 
 使用`b0lbca57`（which is a hexspeak for bulbcast）作为每个数据包开头，该magic原则上和应用层的一致。
 
 
 
-### message
+### bulbboot协议
+
+bulbboot协议只有一条指令，
+
+| magic 4B    | mac 6B            | sha80 10B         | group id 4B | padding 2B |
+| ----------- | ----------------- | ----------------- | ----------- | ---------- |
+| b0:1b:b0:07 | 7c:df:a1:61:ec:72 | xx:xx:xx:xx:xx:xx | xx:xx:xx:xx | xx:xx      |
+
+
+
+```
+b01bb0077cdfa161ec72afc7aa13b6d640e9a437a5a5a5a70808
+```
+
+
+
+
 
 灯的payload部分数据格式类似蓝牙的ad element格式设计，采用LTV方式（Length-Type-Value）；但boot指令需装载较多内容无法这样使用。
 
@@ -81,7 +63,7 @@ static const esp_ble_adv_data_t adv_data_default = {
 
 1. `aged_time_in_minutes`总计是50分钟设计，如果是0，老化时间不足1分钟，如果是小与等于50，表示老化时间；如果超过50，该灯泡通过人为干预或者固件升级禁止了启动时检查老化测试的ap（`tuya_mdev_test2`），以加快启动速度；
 2. 遗嘱数据包里的reason是在程序里定义的enum类型，参见`bulbboot.h`文件里的源码定义，error是optional的，如果错误是函数返回的错误值，由该字段提供，一些函数不提供error值，遗嘱会记录当时的C标准库里的`errno`，比如lwip协议栈的读写错误就使用该宏表示错误原因；乐鑫的平台混合了多种开源项目，每个项目代码对错误返回的约定不一致，所以方便起见遗嘱数据包里包含所有这些值；
-3. target mac的endianness；在蓝牙协议里所有数据包内数值定义，例如`uint32_t`都使用little endian，在包头（而不是payload）里的源设备地址也是little endian的，这一点可以在linux电脑上用hcidump看到；但是esp32整个平台的地址是从网络地址派生的，比如`esp_read_mac()`函数返回的地址实际上是big endian的，即mac[0]是most significant byte，mac[0-2]是乐鑫分配到的OUI；为了编程和debug打印时观察方便所有manufacturer data内包含的蓝牙设备地址，逻辑组地址，均使用big endian方式，乐鑫的模块启动后蓝牙协议栈打印的蓝牙地址也是big endian的；
+3. target mac的endianness；在蓝牙协议里所有数据包内数值定义，例如`uint32_t`都使用little endian，在包头里的源设备地址（以及directed advertisement数据包的目标地址）也是little endian的，这一点可以在linux电脑上用hcidump看到；但是esp32整个平台的地址是从网络地址派生的，比如`esp_read_mac()`函数返回的地址实际上是big endian的，即mac[0]是most significant byte而不是least significan byte，mac[0-2]是乐鑫分配到的OUI（`7c:df:a1`）；为了编程和debug打印时观察方便，本项目所有manufacturer data内包含的蓝牙设备地址，逻辑分组地址，以及打印输出，console输入，均使用big endian方式，乐鑫模块启动后蓝牙协议栈打印的蓝牙地址也是big endian的；
 4. ssid token会包含在ap的ssid里，例如如果ssid token是`0x00 0x00 0x01 0x0a`则ap ssid可以是`jubensha-0000010a`；
 5. `sha88`是乐鑫的可执行程序的二进制文件包含的镜像的sha256值的前面11个byte，该值包含在编译生成的bin文件的结尾，无需自己计算也不要在传播bin文件时更改；`esp_image_verify()`函数会检查该值确认镜像的完整性；
 
@@ -110,6 +92,12 @@ Reference: https://macaddresschanger.com/what-is-bluetooth-address-BD_ADDR
 
 
 
+## 分区表
+
+rd`
+
+
+
 ## 蓝牙广播
 
 蓝牙广播在下述状态下存在：
@@ -120,13 +108,13 @@ Reference: https://macaddresschanger.com/what-is-bluetooth-address-BD_ADDR
 
 
 
-## 其它
+## 时间参数
 
 `ota`从连接指定的wifi ap开始，系统最终会给一个`STA_GOT_IP`事件表示已经成功通过DHCP获得地址；如果中间遇到错误，程序不仔细检查底层的错误原因，直接重启，设置的超时时间为15秒。
 
 
 
-
+## 调试用程序和数据
 
 ```
 b0:1b:ca:57::0f::[target mac]::[ssid token]::[sha88]
@@ -134,5 +122,19 @@ b0:1b:ca:57::0f::[target mac]::[ssid token]::[sha88]
 
 b0:1b:ca:57::0f::7c:df:a1:61:fa:0a::a5:a5:a5:a5::00:11:22:33:44:55:66:77:88:99:aa
 b01bca570f7cdfa161fa0aa5a5a5a500112233445566778899aa
+
+7c:df:a1:61:ec:72
+
+b01bca570f7cdfa161ec72a5a5a5a500112233445566778899aa
+
+ff23ffdc4cbd7d31927f5a0487f7d9d79e401f6f98
+
+b01bca570f7cdfa161ec72a5a5a5a5afc7aa13b6d640e9a4370a
+
 ```
 
+
+
+# BulbCast
+
+`bulbcast`是应用层使用的传输协议，也是
