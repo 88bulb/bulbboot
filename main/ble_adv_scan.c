@@ -21,41 +21,71 @@
 static const char *TAG = "bulbboot";
 
 /**
- * b01bca57 0f  xx:xx:xx:xx:xx:xx   xx:xx:xx:xx
- * 4 bytes  1   6-byte address      4-byte ssid token (15 bytes)
- * 11 bytes (sha88)
+ * - b0:1b:b0:07 (magic, 4 bytes)
+ * - 7c:df:a1:61:ec:72 (ble mac address, big-endian, 6 bytes)
+ * - xx:xx:xx:xx:xx:xx:xx:xx:xx:xx (sha80, 10 bytes)
+ * - xx:xx:xx:xx:xx:xx (the first 3 bytes are used as ssid token,
+ *                      all six bytes are stored in custom field in rtc mem)
  */
 static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
-    if (data_len != 26 || data[0] != 0xb0 || data[1] != 0x1b ||
-        data[2] != 0xca || data[3] != 0x57 || data[4] != 0x0f)
+    /* size */
+    if (data_len != 26)
         return;
 
-    // little endian in air packet
+    /* magic must match */
+    if (data[0] != 0xb0 || data[1] != 0x1b || data[2] != 0xb0 ||
+        data[3] != 0x07)
+        return;
+
+    /* (big-endian) ble mac must match */
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_BT);
-    if (data[5] != mac[0] || data[6] != mac[1] || data[7] != mac[2] ||
-        data[8] != mac[3] || data[9] != mac[4] || data[10] != mac[5])
+    if (data[4] != mac[0] || data[5] != mac[1] || data[6] != mac[2] ||
+        data[7] != mac[3] || data[8] != mac[4] || data[9] != mac[5])
         return;
 
+    ESP_LOGI(TAG, "bulbboot packet received");
+
+    /* extract sha80 */
+    sha80[0] = data[10];
+    sha80[1] = data[11];
+    sha80[2] = data[12];
+    sha80[3] = data[13];
+    sha80[4] = data[14];
+    sha80[5] = data[15];
+    sha80[6] = data[16];
+    sha80[7] = data[17];
+    sha80[8] = data[18];
+    sha80[9] = data[19];
+
+    /* last six bytes are boot parameters */
+    boot_params[0] = data[20];
+    boot_params[1] = data[21];
+    boot_params[2] = data[22];
+    boot_params[3] = data[23];
+    boot_params[4] = data[24];
+    boot_params[5] = data[25];
+
+    /* generate hex string of sha80 */
     const char hex_char[16] = "0123456789abcdef";
-    for (int i = 0; i < 4; i++) {
-        uint8_t n = data[11 + i];
-        ssid_token[i] = n;
-        ssid_token_str[2 * i] = hex_char[n / 16];
-        ssid_token_str[2 * i + 1] = hex_char[n % 16];
+    int i;
+    for (i = 0; i < sizeof(sha80); i++) {
+        sha80_hex[2 * i] = hex_char[sha80[i] / 16];
+        sha80_hex[2 * i + 1] = hex_char[sha80[i] % 16];
     }
+    sha80_hex[2 * i] = '\0';
+    ESP_LOGI(TAG, "sha80 in hex string: %s", sha80_hex);
 
-    ESP_LOGI(TAG, "ssid token: %s", ssid_token_str);
-
-    for (int i = 0; i < sizeof(sha88); i++) {
-        uint8_t n = data[15 + i];
-        sha88[i] = n;
-        sha88_str[2 * i] = hex_char[n / 16];
-        sha88_str[2 * i + 1] = hex_char[n % 16];
-    }
-
-    ESP_LOGI(TAG, "sha88 in hex string: %s", sha88_str);
-    ESP_LOGI(TAG, "boot request received");
+    /* the hex string of the first three bytes of boot_params
+      are used as ssid token */
+    ssid_token[0] = hex_char[boot_params[0] / 16];
+    ssid_token[1] = hex_char[boot_params[0] % 16];
+    ssid_token[2] = hex_char[boot_params[1] / 16];
+    ssid_token[3] = hex_char[boot_params[1] % 16];
+    ssid_token[4] = hex_char[boot_params[2] / 16];
+    ssid_token[5] = hex_char[boot_params[2] % 16];
+    ssid_token[6] = '\n';
+    ESP_LOGI(TAG, "ssid token: %s", ssid_token);
 
     ESP_ERROR_CHECK(esp_ble_gap_stop_scanning());
 }

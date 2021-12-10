@@ -31,16 +31,16 @@ typedef enum {
     OTA_PARTITION_NOT_FOUND = 0,
     OTA_AP_NOT_FOUND = 1,
     OTA_NETWORK_TIMEOUT = 2,
-    OTA_LWIP_SOCKET,
-    OTA_LWIP_CONNECT,
-    OTA_SEND_BULBBOOT,
-    OTA_READ_SIZE,
-    OTA_BAD_FIRMWARE_SIZE,
-    OTA_PARTITION_ERASE_RANGE,
-    OTA_RECV_FILE,
-    OTA_FIRMWARE_UNDERSIZE,
-    OTA_FIRMWARE_OVERSIZE,
-    OTA_ESP_PARTITION_WRITE,
+    OTA_LWIP_SOCKET = 3,
+    OTA_LWIP_CONNECT = 4,
+    OTA_SEND_BULBBOOT = 5,
+    OTA_READ_SIZE = 6,
+    OTA_BAD_FIRMWARE_SIZE = 7,
+    OTA_PARTITION_ERASE_RANGE = 8,
+    OTA_RECV_FILE = 9,
+    OTA_FIRMWARE_UNDERSIZE = 10,
+    OTA_FIRMWARE_OVERSIZE = 11,
+    OTA_ESP_PARTITION_WRITE = 12,
 } last_will_t;
 
 extern last_will_t last_will_reason;
@@ -49,10 +49,15 @@ extern int last_will_errno;
 
 extern EventGroupHandle_t ev;
 
-extern char ssid_token[4];
-extern char ssid_token_str[16];
-extern uint8_t sha88[11];
-extern char sha88_str[32];
+/* sha80 in bulbboot packet */
+extern uint8_t sha80[10];
+/* last six bytes in bulbboot packet */
+extern uint8_t boot_params[6];
+/* sha80 in hex string */
+extern char sha80_hex[21];
+/* the hex string of first 3 bytes in
+   boot params are used as ssid token */
+extern char ssid_token[7];
 
 /* initialize led in pwm mode */
 void led_init();
@@ -68,4 +73,3 @@ void aging_test2();
 void ble_adv_scan(void *pvParameters);
 
 #endif
-

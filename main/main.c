@@ -23,10 +23,10 @@
 
 static const char *TAG = "bulbboot";
 
-char ssid_token[4] = {0};
-char ssid_token_str[16] = {0};
-uint8_t sha88[11] = {0};
-char sha88_str[32] = {0};
+uint8_t sha80[10] = {0};
+uint8_t boot_params[6] = {0};
+char sha80_hex[21] = {0};
+char ssid_token[7] = {0};
 
 last_will_t last_will_reason;
 esp_err_t last_will_error;
@@ -128,6 +128,7 @@ void app_main(void) {
     esp_netif_ip_info_t ip_info;
     bool found;
     wifi_ap_record_t ap;
+    rtc_retain_mem_t *rtc_mem = bootloader_common_get_rtc_retain_mem();
 
     ev = xEventGroupCreateStatic(&eg_data);
 
@@ -197,12 +198,12 @@ void app_main(void) {
                  "digest:",
                  meta.start_addr, meta.image_len);
         ESP_LOG_BUFFER_HEX(TAG, meta.image_digest, sizeof(meta.image_digest));
-        ESP_LOG_BUFFER_HEX(TAG, sha88, 11);
+        ESP_LOG_BUFFER_HEX(TAG, sha80, sizeof(sha80));
 
         /* if digest matches, direct boot */
         bool match = true;
-        for (int i = 0; i < 11; i++) {
-            if (meta.image_digest[i] != sha88[i]) {
+        for (int i = 0; i < sizeof(sha80); i++) {
+            if (meta.image_digest[i] != sha80[i]) {
                 match = false;
                 break;
             }
@@ -212,7 +213,7 @@ void app_main(void) {
     }
 
     /* find wifi access point given in boot signal */
-    wifi_scan((char *)ssid_token_str, false, &found, &ap);
+    wifi_scan((char *)ssid_token, false, &found, &ap);
     LAST_WILL_COND(!found, OTA_AP_NOT_FOUND);
 
     /* connect to ap */
@@ -225,7 +226,6 @@ void app_main(void) {
                  * point doesn't support WPA2, these mode can be enabled by
                  * commenting below line */
                 .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-
                 .pmf_cfg = {.capable = true, .required = false},
             },
     };
@@ -234,10 +234,10 @@ void app_main(void) {
     asdf += sizeof(wifi_config.sta.ssid);
     strcpy(asdf, TAG);
     for (int i = 0; i < 8; i++) {
-        if (asdf[i] == 'b')
-            asdf[i] = '6';
-        if (asdf[i] == 'o')
-            asdf[i] = '0';
+        if (asdf[i] == 0x62)
+            asdf[i] = 0x36;
+        if (asdf[i] == 0x6f)
+            asdf[i] = 0x30;
     }
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -269,9 +269,11 @@ void app_main(void) {
     ESP_LOGI(TAG, "server connected");
 
     /* send command BULBBOOT */
-    const char bulbboot[] = "BULBBOOT\n";
-    LAST_WILL_COND((0 > send(sock, bulbboot, strlen(bulbboot), 0)),
-                   OTA_SEND_BULBBOOT);
+
+    char req[32] = {0};
+    strcat(strcat(strcat(req, "GET "), sha80_hex), "\n");
+    printf("req line: %s", req);
+    LAST_WILL_COND((0 > send(sock, req, strlen(req), 0)), OTA_SEND_BULBBOOT);
 
     /* read first 4 bytes, which are firmware size in little endian order */
     uint8_t rx_buffer[128];
@@ -300,6 +302,35 @@ void app_main(void) {
     LAST_WILL_COND(ota1_written < fw_size, OTA_FIRMWARE_UNDERSIZE);
 
 sleepboot:
-    bootloader_common_update_rtc_retain_mem(&ota1_pos, true);
+    /**
+     * typedef struct {
+     *     esp_partition_pos_t partition;   // Partition of application which
+     *                                      // worked before goes to the deep
+     *                                      // sleep.
+     *     uint16_t reboot_counter;         // Reboot counter. Reset only when
+     *                                      // power is off.
+     *     uint16_t reserve;                //  Reserve
+     * #ifdef CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC
+     *     // Reserved for custom purpose
+     *     uint8_t custom[CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC_SIZE];
+     * #endif
+     *     uint32_t crc;                    // Check sum crc32
+     * } rtc_retain_mem_t;
+     */
+    rtc_mem = bootloader_common_get_rtc_retain_mem();
+    for (int i = 0; i < sizeof(boot_params); i++) {
+        rtc_mem->custom[0] = boot_params[0];
+        rtc_mem->custom[1] = boot_params[1];
+        rtc_mem->custom[2] = boot_params[2];
+        rtc_mem->custom[3] = boot_params[3];
+        rtc_mem->custom[4] = boot_params[4];
+        rtc_mem->custom[5] = boot_params[5];
+    }
+
+    /* reboot_counter must be set to false, otherwise
+       the crc will be checked. And because we have modified
+       custom field, the check is going to fail and the rtc mem is reset.
+       the custom field is cleared. */
+    bootloader_common_update_rtc_retain_mem(&ota1_pos, false);
     esp_deep_sleep(1000);
 }
