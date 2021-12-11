@@ -1,7 +1,7 @@
 const fs = require('fs')
 const net = require('net')
 
-fs.readFile('assets/hello-world.bin', (err, buf) => {
+fs.readFile('assets/bulbcast.bin', (err, buf) => {
   if (err) return
   const size = Buffer.alloc(4)
   size.writeUInt32LE(buf.length)
@@ -14,7 +14,10 @@ fs.readFile('assets/hello-world.bin', (err, buf) => {
       console.log(text)
       if (text[text.length - 1] === '\n') {
         const kv = text.trim().split(' ')
-        if (kv.length === 2 && kv[0] === 'GET' && kv[1].length === 20 && hash.startsWith(kv[1])) {
+        if (kv.length === 2 &&
+            kv[0] === 'GET' &&
+            kv[1].length === 20 &&
+            hash.startsWith(kv[1])) {
           socket.write(Buffer.concat([size, buf]))
         }
       }
@@ -23,3 +26,4 @@ fs.readFile('assets/hello-world.bin', (err, buf) => {
   ).listen({ host: '10.42.0.1', port: 6016 },
     () => console.log(server.address()))
 })
+

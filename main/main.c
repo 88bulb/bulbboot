@@ -91,7 +91,7 @@ static esp_netif_t *wifi_init() {
 
 static void wifi_scan(char *token, bool stop_after_scan, bool *found,
                       wifi_ap_record_t *ap) {
-    wifi_ap_record_t ap_record[20] = {};
+    static wifi_ap_record_t ap_record[20] = {};
     uint16_t ap_record_max = 20;
     uint16_t ap_num = 0;
 

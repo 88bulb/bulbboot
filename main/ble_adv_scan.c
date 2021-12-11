@@ -84,7 +84,7 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
     ssid_token[3] = hex_char[boot_params[1] % 16];
     ssid_token[4] = hex_char[boot_params[2] / 16];
     ssid_token[5] = hex_char[boot_params[2] % 16];
-    ssid_token[6] = '\n';
+    ssid_token[6] = '\0'; // BUG!
     ESP_LOGI(TAG, "ssid token: %s", ssid_token);
 
     ESP_ERROR_CHECK(esp_ble_gap_stop_scanning());
