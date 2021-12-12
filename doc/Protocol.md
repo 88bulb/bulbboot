@@ -35,7 +35,7 @@
 
 ### bulbboot协议
 
-bulbboot协议只有一条指令，
+bulbboot协议只有一条指令；网关使用bulbboot指令启动应用，灯也仅接收这一条指令工作。
 
 | magic 4B    | mac 6B            | sha80 10B         | group id 4B | padding 2B |
 | ----------- | ----------------- | ----------------- | ----------- | ---------- |
@@ -44,20 +44,81 @@ bulbboot协议只有一条指令，
 
 
 ```
-b01bb0077cdfa161ec72afc7aa13b6d640e9a437a5a5a5a70808
+b01bb0077cdfa161ec72afc7aa13b6d640e9a437a5a5a5a70208
+b01bb0077cdfa161ec72ffc7aa13b6d640e9a437a5a5a5a70208
+
+b01bb0077cdfa161ec728daf63c883e4e9c8cb92a5a5a5a70208
+
+8daf63c883e4e9c8cb92
+
+b01bb0077cdfa161ec72e72f1c921c64a37e0fa4a5a5a5a70208
+e72f1c921c64a37e0fa4
+
+b01bb0077cdfa161ec72c4f483bacdd73ad113f2a5a5a5a70208
+c4f483bacdd73ad113f2
+
+b01bb0077cdfa161ec727fde9823c1e50312a43fa5a5a5a70208
+7fde9823c1e50312a43f
+
+b01bb0077cdfa161ec72622076bb63dc786ddfe7a5a5a5a70208
+622076bb63dc786ddfe7
+
+b01bb0077cdfa161ec72751d5643ef42f2eaa7ffa5a5a5a70208
+751d5643ef42f2eaa7ff
+
+b01bb00784f7030897be751d5643ef42f2eaa7ffa5a5a5a70207
+
+b01bb00784f70332a5fa751d5643ef42f2eaa7ffa5a5a5a70207
+
+84:f7:03:08:97:be
+
+84f70332a5fa
+
+
+b01bca57200710a5a5a5a7010007202020202000
+
+
+b01bca5720081099a5a5a5a700800720F000000000
+b01bca5720081099a5a5a5a70080072000F0000000
+b01bca5720081099a5a5a5a7008007200000F00000
+b01bca5720081099a5a5a5a700800720000000F000
+
+
+b01bb00784f7030897be751d5643ef42f2eaa7ffa5a5a5a70207
+
+b01bb00784f7030897be751d5643ef42f2eaa7ffa5a5a5a70207
+
+b01bb0077cdfa161ec723bbd2af7918083ab19cfa5a5a5a70207
+
+b01bb00784f70332a5fa1a94b8f1ba48143a63b3a5a5a5a70207
+1a94b8f1ba48143a63b3
+
+
+
+
 ```
 
 
+
+0x00 设备信息，Device ID, Program ID, Version
+
+0x01 分组信息（启动参数）
+
+0x02 温度
+
+0x04 老化时间
 
 
 
 灯的payload部分数据格式类似蓝牙的ad element格式设计，采用LTV方式（Length-Type-Value）；但boot指令需装载较多内容无法这样使用。
 
-| code |          | payload                                          | 完整例子                                             |
-| ---- | -------- | ------------------------------------------------ | ---------------------------------------------------- |
-| 0x00 | 灯的广播 | 0x02，0x00，第三个字节是`aged_time_in_minutes`   | b0:1b:ca:57::00::02:00:xx (xx = 00-ff)               |
-| 0x00 | 灯的遗嘱 | 0x04, 0x01, reason, error, errno                 | b0:1b:ca:57::00::04:01:01:00:00                      |
-| 0x0f | 网关指令 | target mac 6字节，ssid token 4字节，sha88 11字节 | b0:1b:ca:57::0f::[target mac]::[ssid token]::[sha88] |
+| code |          | payload                                                      | 完整例子                               |
+| ---- | -------- | ------------------------------------------------------------ | -------------------------------------- |
+| 0x00 | 灯的广播 | 0x02，0x00，第三个字节是`aged_time_in_minutes`               | b0:1b:ca:57::00::02:00:xx (xx = 00-ff) |
+| 0x00 | 灯的遗嘱 | 0x04, 0x01, reason, error, errno                             | b0:1b:ca:57::00::04:01:01:00:00        |
+| 0x10 | 灯的广播 | 0x07, 0x02, [boot_params 6 bytes],                           |                                        |
+| 0x10 | 灯的遗嘱 | 同前                                                         |                                        |
+| 0x20 | 网关指令 | 0x08, 0x10, [seq 1], [group id 4], [bits 2]; 07, 0x20, r, g, b, w, t |                                        |
 
 说明：
 
