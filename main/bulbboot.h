@@ -72,13 +72,15 @@ extern char ssid_token[7];
 void led_init();
 
 /* read and write tuya aged time (in minutes) */
+
+extern uint8_t aging_minutes;
 esp_err_t write_aging_minutes(uint8_t minutes);
 
 /* temperature */
 extern uint8_t temp;
 
 /* these functions run in main task */
-void aging_test1(uint8_t aged_minutes);
+void aging_test1();
 void aging_test2();
 
 /* freertos task */

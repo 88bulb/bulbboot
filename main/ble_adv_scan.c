@@ -204,7 +204,7 @@ void ble_adv_scan(void *params) {
 
         adv_mfr_data[12] = 0x02;
         adv_mfr_data[13] = 0x01;
-        adv_mfr_data[14] = 0x00; // TODO
+        adv_mfr_data[14] = aging_minutes;
 
         adv_mfr_data[15] = 0x02;
         adv_mfr_data[16] = 0x02;

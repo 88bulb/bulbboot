@@ -25,6 +25,7 @@
 
 static const char *TAG = "bulbboot";
 
+uint8_t aging_minutes;
 uint8_t temp = 0;
 
 uint8_t sha80[10] = {0};
@@ -43,17 +44,6 @@ static esp_event_handler_instance_t got_ip_handle;
 
 static nvs_handle_t nvs;
 
-static uint8_t read_aging_minutes() {
-    esp_err_t err;
-    uint8_t minutes;
-    err = nvs_get_u8(nvs, "aging_minutes", &minutes);
-    if (err == ESP_OK) {
-        return minutes;
-    } else {
-        return 0;
-    }
-}
-
 esp_err_t write_aging_minutes(uint8_t minutes) {
     return nvs_set_u8(nvs, "aging_minutes", minutes);
 }
@@ -70,7 +60,7 @@ static void nvs_init() {
     ESP_ERROR_CHECK(nvs_open("nvs", NVS_READWRITE, &nvs));
 }
 
-static void temp_sensor_timer_callback (TimerHandle_t timer) {
+static void temp_sensor_timer_callback(TimerHandle_t timer) {
     float tsens_out;
     temp_sensor_read_celsius(&tsens_out);
     if (tsens_out <= 0) {
@@ -81,7 +71,7 @@ static void temp_sensor_timer_callback (TimerHandle_t timer) {
     ESP_LOGI(TAG, "temperature %f (float), %u (uint8_t)", tsens_out, temp);
 }
 
-static void temp_sensor_init () {
+static void temp_sensor_init() {
     temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
     temp_sensor_get_config(&temp_sensor);
     temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
@@ -182,15 +172,19 @@ void app_main(void) {
     temp_sensor_init();
     sta_netif = wifi_init();
 
-    uint8_t age = read_aging_minutes();
-    ESP_LOGI(TAG, "aged time in minutes: %u", age);
+    err = nvs_get_u8(nvs, "aging_minutes", &aging_minutes);
+    if (err != ESP_OK)
+        aging_minutes = 0;
 
-    if (age < 50) {
+    read_aging_minutes();
+    ESP_LOGI(TAG, "aging minutes: %u", aging_minutes);
+
+    if (aging_minutes < 50) {
         wifi_scan("tuya_mdev_test1", true, &found, &ap);
         if (found) {
             if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test1")) {
                 ESP_LOGI(TAG, "found tuya_mdev_test1 ap");
-                aging_test1(age);
+                aging_test1();
                 vTaskDelay(portMAX_DELAY);
             } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test1")) {
                 ESP_LOGI(TAG, "aging time set to 0xee (238)");
@@ -199,15 +193,15 @@ void app_main(void) {
         } else {
             ESP_LOGI(TAG, "tuya_mdev_test1 not found");
             // ble broadcasting
-            xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, &age, 6, NULL);
+            xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
             vTaskDelay(portMAX_DELAY);
         }
-    } else if (age == 50) {
+    } else if (aging_minutes == 50) {
         wifi_scan("tuya_mdev_test2", true, &found, &ap);
         if (found) {
             if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test2")) {
                 ESP_LOGI(TAG, "found tuya_mdev_test2");
-                xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, &age, 6, NULL);
+                xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
                 // this function should loop forever according to definition
                 aging_test2();
             } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test2")) {
@@ -218,7 +212,7 @@ void app_main(void) {
     }
 
     /* create ble task */
-    xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, &age, 6, NULL);
+    xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
     xEventGroupWaitBits(ev, BOOT_SIGNALLED, pdFALSE, pdFALSE, portMAX_DELAY);
 
     /* retrieve ota1 partition */
