@@ -17,11 +17,15 @@
 #include "esp_wifi.h"
 #include "bootloader_common.h"
 
+#include "driver/temp_sensor.h"
+
 #include "bulbboot.h"
 
 #define PORT (6016)
 
 static const char *TAG = "bulbboot";
+
+uint8_t temp = 0;
 
 uint8_t sha80[10] = {0};
 uint8_t boot_params[6] = {0};
@@ -64,6 +68,28 @@ static void nvs_init() {
     }
     ESP_ERROR_CHECK(err);
     ESP_ERROR_CHECK(nvs_open("nvs", NVS_READWRITE, &nvs));
+}
+
+static void temp_sensor_timer_callback (TimerHandle_t timer) {
+    float tsens_out;
+    temp_sensor_read_celsius(&tsens_out);
+    if (tsens_out <= 0) {
+        temp = 0;
+    } else {
+        temp = (uint8_t)tsens_out;
+    }
+    ESP_LOGI(TAG, "temperature %f (float), %u (uint8_t)", tsens_out, temp);
+}
+
+static void temp_sensor_init () {
+    temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
+    temp_sensor_get_config(&temp_sensor);
+    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
+    temp_sensor_set_config(temp_sensor);
+    temp_sensor_start();
+
+    xTimerCreate("temp_timer", 30 * 1000 / portTICK_PERIOD_MS, pdTRUE, 0,
+                 &temp_sensor_timer_callback);
 }
 
 static void last_will(last_will_t reason, esp_err_t err) {
@@ -153,6 +179,7 @@ void app_main(void) {
 
     nvs_init();
     led_init();
+    temp_sensor_init();
     sta_netif = wifi_init();
 
     uint8_t age = read_aging_minutes();
