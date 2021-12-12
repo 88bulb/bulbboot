@@ -20,6 +20,10 @@
 
 static const char *TAG = "bulbboot";
 
+static const uint8_t version = 0x00;
+static uint8_t seq_num = 0x00;
+static uint8_t adv_type = 0x00; // bulbboot adv
+
 /**
  * - b0:1b:b0:07 (magic, 4 bytes)
  * - 7c:df:a1:61:ec:72 (ble mac address, big-endian, 6 bytes)
@@ -90,19 +94,19 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
     ESP_ERROR_CHECK(esp_ble_gap_stop_scanning());
 }
 
+static esp_ble_adv_params_t adv_params = {
+    .adv_int_min = 0,
+    .adv_int_max = 0,
+    .adv_type = ADV_TYPE_NONCONN_IND,
+    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map = ADV_CHNL_ALL,
+    .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
 static void esp_gap_cb(esp_gap_ble_cb_event_t event,
                        esp_ble_gap_cb_param_t *param) {
     switch (event) {
     case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT: {
-        esp_ble_adv_params_t adv_params = {
-            .adv_int_min = 0x0C00, // 1920ms
-            .adv_int_max = 0x1000, // 2560ms
-            .adv_type = ADV_TYPE_NONCONN_IND,
-            .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
-            .channel_map = ADV_CHNL_ALL,
-            .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
-        };
-
         if (xEventGroupGetBits(ev) & LAST_WILL) {
             adv_params.adv_int_min = 0x0040; // 40ms
             adv_params.adv_int_max = 0x0080; // 80ms
@@ -157,11 +161,25 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event,
     }
 }
 
-void ble_adv_scan(void *pvParameters) {
-    uint8_t *age = (uint8_t *)pvParameters;
-    uint8_t adv_mfr_data[32] = {0xb0, 0x1b, 0xca, 0x57, 0x00, 0x02, 0x00, 0x00};
-    adv_mfr_data[7] = *age;
+static uint8_t adv_mfr_data[32] = {};
 
+static esp_ble_adv_data_t adv_data = {
+    .set_scan_rsp = false,
+    .include_name = false,
+    .include_txpower = false,
+    .min_interval = 0x0000,
+    .max_interval = 0x0000,
+    .appearance = 0x00,
+    .manufacturer_len = 18,
+    .p_manufacturer_data = adv_mfr_data,
+    .service_data_len = 0,
+    .p_service_data = NULL,
+    .service_uuid_len = 0,
+    .p_service_uuid = NULL,
+    .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
+};
+
+void ble_adv_scan(void *params) {
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
     ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
@@ -169,34 +187,58 @@ void ble_adv_scan(void *pvParameters) {
     ESP_ERROR_CHECK(esp_bluedroid_enable());
     ESP_ERROR_CHECK(esp_ble_gap_register_callback(esp_gap_cb));
 
-    esp_ble_adv_data_t adv_data = {
-        .set_scan_rsp = false,
-        .include_name = false,
-        .include_txpower = false,
-        .min_interval = 0x0000,
-        .max_interval = 0x0000,
-        .appearance = 0x00,
-        .manufacturer_len = 8,
-        .p_manufacturer_data = adv_mfr_data,
-        .service_data_len = 0,
-        .p_service_data = NULL,
-        .service_uuid_len = 0,
-        .p_service_uuid = NULL,
-        .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
-    };
-    ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
-    xEventGroupWaitBits(ev, LAST_WILL, pdFALSE, pdFALSE, portMAX_DELAY);
+    while (1) {
+        adv_mfr_data[0] = 0xb0; // magic
+        adv_mfr_data[1] = 0x1b;
+        adv_mfr_data[2] = 0xca;
+        adv_mfr_data[3] = 0x57;
+        adv_mfr_data[4] = seq_num++;
+        adv_mfr_data[5] = adv_type;
 
-    ESP_ERROR_CHECK(esp_ble_gap_stop_advertising());
-    xEventGroupWaitBits(ev, ADV_STOP_COMPLETE, pdFALSE, pdFALSE, portMAX_DELAY);
+        adv_mfr_data[6] = 0x05;
+        adv_mfr_data[7] = ADT_DEVICE_INFO;
+        adv_mfr_data[8] = HARDWARE_ID;
+        adv_mfr_data[9] = HARDWARE_VERSION;
+        adv_mfr_data[10] = SOFTWARE_ID;
+        adv_mfr_data[11] = SOFTWARE_VERSION;
 
-    // last will advertisement
-    adv_data.manufacturer_len = 10;
-    adv_mfr_data[5] = 0x04; // length
-    adv_mfr_data[6] = 0x01; // type, last will
-    adv_mfr_data[7] = last_will_reason;
-    adv_mfr_data[8] = last_will_error;
-    adv_mfr_data[9] = last_will_errno;
+        adv_mfr_data[12] = 0x02;
+        adv_mfr_data[13] = 0x01;
+        adv_mfr_data[14] = 0x00; // TODO
+
+        adv_mfr_data[15] = 0x02;
+        adv_mfr_data[16] = 0x02;
+        adv_mfr_data[17] = temp;
+
+        if (adv_params.adv_int_min == 0) {
+            adv_params.adv_int_min = 0x200;
+            adv_params.adv_int_max = 0x400;
+        } else {
+            adv_params.adv_int_min = 0x2000;
+            adv_params.adv_int_max = 0x4000;
+        }
+
+        ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
+        xEventGroupWaitBits(ev, LAST_WILL, pdFALSE, pdFALSE,
+                            4 * 1000 / portTICK_PERIOD_MS);
+
+        ESP_ERROR_CHECK(esp_ble_gap_stop_advertising());
+        xEventGroupWaitBits(ev, ADV_STOP_COMPLETE, pdFALSE, pdFALSE,
+                            portMAX_DELAY);
+
+        if (xEventGroupGetBits(ev) & LAST_WILL)
+            break;
+    }
+
+    adv_mfr_data[5] = seq_num++;
+    adv_mfr_data[6] = adv_type;
+    adv_mfr_data[7] = 0x04; // length
+    adv_mfr_data[8] = 0xe0; // type, last will
+    adv_mfr_data[9] = last_will_reason;
+    adv_mfr_data[10] = last_will_error;
+    adv_mfr_data[11] = last_will_errno;
+    adv_data.manufacturer_len = 12;
+
     ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
     xEventGroupWaitBits(ev, LAST_WILL_ADV_START_COMPLETE, pdFALSE, pdFALSE,
                         portMAX_DELAY);

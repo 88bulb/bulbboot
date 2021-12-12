@@ -21,6 +21,15 @@
         }                                                                      \
     } while (0)
 
+#define ADT_DEVICE_INFO     (0x00)
+#define ADT_AGING_TIME      (0x01)
+#define ADT_TEMP            (0x02)
+
+#define HARDWARE_ID         (0x00)     // bulb
+#define HARDWARE_VERSION    (0x00)     // the very first version
+#define SOFTWARE_ID         (0x00)     // bulbboot
+#define SOFTWARE_VERSION    (0x00)     // the very first version
+
 #define BOOT_SIGNALLED (1 << 1)
 #define STA_GOT_IP (1 << 2)
 #define LAST_WILL (1 << 3)
@@ -65,6 +74,7 @@ void led_init();
 /* read and write tuya aged time (in minutes) */
 esp_err_t write_aging_minutes(uint8_t minutes);
 
+/* temperature */
 extern uint8_t temp;
 
 /* these functions run in main task */
