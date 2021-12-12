@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/timers.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 
@@ -25,7 +26,7 @@
 
 static const char *TAG = "bulbboot";
 
-uint8_t aging_minutes;
+uint8_t aging_minutes = 0;
 uint8_t temp = 0;
 
 uint8_t sha80[10] = {0};
@@ -78,8 +79,10 @@ static void temp_sensor_init() {
     temp_sensor_set_config(temp_sensor);
     temp_sensor_start();
 
-    xTimerCreate("temp_timer", 30 * 1000 / portTICK_PERIOD_MS, pdTRUE, 0,
-                 &temp_sensor_timer_callback);
+    TimerHandle_t timer =
+        xTimerCreate("temp_timer", 10 * 1000 / portTICK_PERIOD_MS, pdTRUE, 0,
+                     &temp_sensor_timer_callback);
+    xTimerStart(timer, 0);
 }
 
 static void last_will(last_will_t reason, esp_err_t err) {
@@ -176,7 +179,6 @@ void app_main(void) {
     if (err != ESP_OK)
         aging_minutes = 0;
 
-    read_aging_minutes();
     ESP_LOGI(TAG, "aging minutes: %u", aging_minutes);
 
     if (aging_minutes < 50) {
@@ -308,8 +310,7 @@ void app_main(void) {
         OTA_LWIP_CONNECT);
     ESP_LOGI(TAG, "server connected");
 
-    /* send command BULBBOOT */
-
+    /* GET <SHA80> */
     char req[32] = {0};
     strcat(strcat(strcat(req, "GET "), sha80_hex), "\n");
     printf("req line: %s", req);

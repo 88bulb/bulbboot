@@ -20,9 +20,8 @@
 
 static const char *TAG = "bulbboot";
 
-static const uint8_t version = 0x00;
 static uint8_t seq_num = 0x00;
-static uint8_t adv_type = 0x00; // bulbboot adv
+static const uint8_t adv_type = 0x00; // bulbboot adv
 
 /**
  * - b0:1b:b0:07 (magic, 4 bytes)
@@ -119,14 +118,6 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event,
             xEventGroupSetBits(ev, LAST_WILL_ADV_START_COMPLETE);
             return;
         }
-        esp_ble_scan_params_t scan_params = {
-            .scan_type = BLE_SCAN_TYPE_PASSIVE,
-            .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
-            .scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
-            .scan_interval = 0x50,
-            .scan_window = 0x50,
-            .scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE};
-        ESP_ERROR_CHECK(esp_ble_gap_set_scan_params(&scan_params));
     } break;
     case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
         ESP_LOGI(TAG, "ble adv stopped");
@@ -179,6 +170,14 @@ static esp_ble_adv_data_t adv_data = {
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
+static esp_ble_scan_params_t scan_params = {
+    .scan_type = BLE_SCAN_TYPE_PASSIVE,
+    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
+    .scan_interval = 0x50,
+    .scan_window = 0x50,
+    .scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE};
+
 void ble_adv_scan(void *params) {
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
@@ -186,6 +185,9 @@ void ble_adv_scan(void *params) {
     ESP_ERROR_CHECK(esp_bluedroid_init());
     ESP_ERROR_CHECK(esp_bluedroid_enable());
     ESP_ERROR_CHECK(esp_ble_gap_register_callback(esp_gap_cb));
+
+    // start scan once and forever
+    ESP_ERROR_CHECK(esp_ble_gap_set_scan_params(&scan_params));
 
     while (1) {
         adv_mfr_data[0] = 0xb0; // magic
