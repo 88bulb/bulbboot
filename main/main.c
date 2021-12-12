@@ -132,6 +132,25 @@ void app_main(void) {
 
     ev = xEventGroupCreateStatic(&eg_data);
 
+    ESP_LOGI(TAG, "Iterating through partitions...");
+    esp_partition_iterator_t it;
+    for (it = esp_partition_find(ESP_PARTITION_TYPE_APP,
+                                 ESP_PARTITION_SUBTYPE_ANY, NULL);
+         it != NULL; it = esp_partition_next(it)) {
+        const esp_partition_t *part = esp_partition_get(it);
+        ESP_LOGI(TAG, "found app partition '%s' at offset 0x%x with size 0x%x",
+                 part->label, part->address, part->size);
+    }
+    esp_partition_iterator_release(it);
+    for (it = esp_partition_find(ESP_PARTITION_TYPE_DATA,
+                                 ESP_PARTITION_SUBTYPE_ANY, NULL);
+         it != NULL; it = esp_partition_next(it)) {
+        const esp_partition_t *part = esp_partition_get(it);
+        ESP_LOGI(TAG, "found data partition '%s' at offset 0x%x with size 0x%x",
+                 part->label, part->address, part->size);
+    }
+    esp_partition_iterator_release(it);
+
     nvs_init();
     led_init();
     sta_netif = wifi_init();
