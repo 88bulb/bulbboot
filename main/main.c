@@ -75,7 +75,8 @@ static void temp_sensor_timer_callback(TimerHandle_t timer) {
 static void temp_sensor_init() {
     temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
     temp_sensor_get_config(&temp_sensor);
-    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
+//    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
+    temp_sensor.dac_offset = TSENS_DAC_L0;  /* 50-125 degree, error < 3C */
     temp_sensor_set_config(temp_sensor);
     temp_sensor_start();
 
@@ -186,6 +187,7 @@ void app_main(void) {
         if (found) {
             if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test1")) {
                 ESP_LOGI(TAG, "found tuya_mdev_test1 ap");
+                xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
                 aging_test1();
                 vTaskDelay(portMAX_DELAY);
             } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test1")) {
@@ -194,8 +196,8 @@ void app_main(void) {
             }
         } else {
             ESP_LOGI(TAG, "tuya_mdev_test1 not found");
-            // ble broadcasting
             xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
+            // normal white TODO
             vTaskDelay(portMAX_DELAY);
         }
     } else if (aging_minutes == 50) {
@@ -215,6 +217,7 @@ void app_main(void) {
 
     /* create ble task */
     xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
+    // normal white TODO
     xEventGroupWaitBits(ev, BOOT_SIGNALLED, pdFALSE, pdFALSE, portMAX_DELAY);
 
     /* retrieve ota1 partition */

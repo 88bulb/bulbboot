@@ -108,9 +108,9 @@ void aging_test1() {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
             five_color_set_duty(0, 0, 255, 0, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 255, 0);
+            five_color_set_duty(0, 0, 0, 192, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 0, 255);
+            five_color_set_duty(0, 0, 0, 0, 192);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
@@ -124,9 +124,9 @@ void aging_test1() {
             vTaskDelay(500 / portTICK_PERIOD_MS);
             five_color_set_duty(0, 0, 255, 0, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 255, 0);
+            five_color_set_duty(0, 0, 0, 192, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 0, 255);
+            five_color_set_duty(0, 0, 0, 0, 192);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
     }
@@ -157,7 +157,7 @@ void aging_test1() {
 
     if (aging_minutes < 50) {
         ESP_LOGI(TAG, "aging color leds at full brightness");
-        five_color_set_duty(255, 255, 255, 0, 0);
+        five_color_set_duty(192, 192, 192, 0, 0);
         do {
             ESP_LOGI(TAG, "%u minutes left", 50 - aging_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
@@ -191,12 +191,12 @@ void aging_test2() {
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 0, 0, 255, 0, 1000);
+        five_color_fade(0, 0, 0, 192, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 0, 0, 0, 255, 1000);
+        five_color_fade(0, 0, 0, 0, 192, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
