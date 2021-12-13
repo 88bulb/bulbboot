@@ -36,6 +36,8 @@
 #define ADV_STOP_COMPLETE (1 << 4)
 #define LAST_WILL_ADV_START_COMPLETE (1 << 5)
 
+#define TAG ("bulbboot")
+
 typedef enum {
     OTA_PARTITION_NOT_FOUND = 0,
     OTA_AP_NOT_FOUND = 1,

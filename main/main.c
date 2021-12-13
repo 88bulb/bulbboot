@@ -19,12 +19,13 @@
 #include "bootloader_common.h"
 
 #include "driver/temp_sensor.h"
+#include "esp_ota_ops.h"
+
+#include "version.h"
 
 #include "bulbboot.h"
 
 #define PORT (6016)
-
-static const char *TAG = "bulbboot";
 
 uint8_t aging_minutes = 0;
 uint8_t temp = 0;
@@ -75,8 +76,8 @@ static void temp_sensor_timer_callback(TimerHandle_t timer) {
 static void temp_sensor_init() {
     temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
     temp_sensor_get_config(&temp_sensor);
-//    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
-    temp_sensor.dac_offset = TSENS_DAC_L0;  /* 50-125 degree, error < 3C */
+    //    temp_sensor.dac_offset = TSENS_DAC_DEFAULT;
+    temp_sensor.dac_offset = TSENS_DAC_L0; /* 50-125 degree, error < 3C */
     temp_sensor_set_config(temp_sensor);
     temp_sensor_start();
 
@@ -148,7 +149,7 @@ void app_main(void) {
     esp_netif_ip_info_t ip_info;
     bool found;
     wifi_ap_record_t ap;
-    rtc_retain_mem_t *rtc_mem = bootloader_common_get_rtc_retain_mem();
+    rtc_retain_mem_t *rtc_mem;
 
     ev = xEventGroupCreateStatic(&eg_data);
 
@@ -171,6 +172,7 @@ void app_main(void) {
     }
     esp_partition_iterator_release(it);
 
+    ver_init();
     nvs_init();
     led_init();
     temp_sensor_init();

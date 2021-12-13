@@ -4,8 +4,6 @@
 
 #include "bulbboot.h"
 
-static const char *TAG = "bulbboot";
-
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
                                 uint32_t w) {
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, r);
@@ -18,11 +16,6 @@ static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_3);
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_4, w);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_4);
-}
-
-static void four_color_set_duty(uint32_t r, uint32_t g, uint32_t b,
-                                uint32_t white) {
-    five_color_set_duty(r, g, b, white / 2, white / 2);
 }
 
 static void five_color_fade(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
