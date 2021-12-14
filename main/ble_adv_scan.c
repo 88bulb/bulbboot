@@ -17,6 +17,7 @@
 #include "esp_gap_ble_api.h"
 
 #include "bulbboot.h"
+#include "version.h"
 
 static uint8_t seq_num = 0x00;
 static const uint8_t adv_type = 0x00; // bulbboot adv
@@ -159,7 +160,7 @@ static esp_ble_adv_data_t adv_data = {
     .min_interval = 0x0000,
     .max_interval = 0x0000,
     .appearance = 0x00,
-    .manufacturer_len = 18,
+    .manufacturer_len = 0,
     .p_manufacturer_data = adv_mfr_data,
     .service_data_len = 0,
     .p_service_data = NULL,
@@ -188,39 +189,43 @@ void ble_adv_scan(void *params) {
     ESP_ERROR_CHECK(esp_ble_gap_set_scan_params(&scan_params));
 
     while (1) {
-        adv_mfr_data[0] = 0xb0; // magic
-        adv_mfr_data[1] = 0x1b;
-        adv_mfr_data[2] = 0xca;
-        adv_mfr_data[3] = 0x57;
-        adv_mfr_data[4] = seq_num++;
-        adv_mfr_data[5] = adv_type;
+        int i = 0;
+        adv_mfr_data[i++] = 0xb0; // magic
+        adv_mfr_data[i++] = 0x1b;
+        adv_mfr_data[i++] = 0xca;
+        adv_mfr_data[i++] = 0x57;
+        adv_mfr_data[i++] = seq_num++;
+        adv_mfr_data[i++] = adv_type;
 
-        adv_mfr_data[6] = 0x05;
-        adv_mfr_data[7] = ADT_DEVICE_INFO;
-        adv_mfr_data[8] = HARDWARE_ID;
-        adv_mfr_data[9] = HARDWARE_VERSION;
-        adv_mfr_data[10] = SOFTWARE_ID;
-        adv_mfr_data[11] = SOFTWARE_VERSION;
+        adv_mfr_data[i++] = 0x06;
+        adv_mfr_data[i++] = ADT_DEVICE_INFO;
+        adv_mfr_data[i++] = SOFTWARE_ID;
+        adv_mfr_data[i++] = version[0];
+        adv_mfr_data[i++] = version[1];
+        adv_mfr_data[i++] = version[2];
+        adv_mfr_data[i++] = version[3];
 
-        adv_mfr_data[12] = 0x02;
-        adv_mfr_data[13] = 0x01;
-        adv_mfr_data[14] = aging_minutes;
+        adv_mfr_data[i++] = 0x02;
+        adv_mfr_data[i++] = 0x01;
+        adv_mfr_data[i++] = aging_minutes;
 
-        adv_mfr_data[15] = 0x02;
-        adv_mfr_data[16] = 0x02;
-        adv_mfr_data[17] = temp;
+        adv_mfr_data[i++] = 0x02;
+        adv_mfr_data[i++] = 0x02;
+        adv_mfr_data[i++] = temp;
+
+        adv_data.manufacturer_len = i;
 
         if (adv_params.adv_int_min == 0) {
-            adv_params.adv_int_min = 0x200;
-            adv_params.adv_int_max = 0x400;
+            adv_params.adv_int_min = 0x200;     // 320ms
+            adv_params.adv_int_max = 0x280;     // 400ms
         } else {
-            adv_params.adv_int_min = 0x2000;
-            adv_params.adv_int_max = 0x4000;
+            adv_params.adv_int_min = 0x4000;    // 16384ms
+            adv_params.adv_int_max = 0x4000;    // 16384ms
         }
 
         ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
         xEventGroupWaitBits(ev, LAST_WILL, pdFALSE, pdFALSE,
-                            4 * 1000 / portTICK_PERIOD_MS);
+                            8 * 1000 / portTICK_PERIOD_MS);
 
         ESP_ERROR_CHECK(esp_ble_gap_stop_advertising());
         xEventGroupWaitBits(ev, ADV_STOP_COMPLETE, pdFALSE, pdFALSE,

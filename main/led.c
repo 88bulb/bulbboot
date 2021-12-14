@@ -64,13 +64,13 @@ void led_init() {
          .timer_sel = LEDC_TIMER_1},
         {.channel = LEDC_CHANNEL_3,
          .duty = 0,
-         .gpio_num = 18,
+         .gpio_num = 19,
          .speed_mode = LEDC_LOW_SPEED_MODE,
          .hpoint = 0,
          .timer_sel = LEDC_TIMER_1},
         {.channel = LEDC_CHANNEL_4,
          .duty = 0,
-         .gpio_num = 19,
+         .gpio_num = 18,
          .speed_mode = LEDC_LOW_SPEED_MODE,
          .hpoint = 0,
          .timer_sel = LEDC_TIMER_1},
@@ -81,7 +81,8 @@ void led_init() {
     }
 
     ledc_fade_func_install(0);
-    five_color_set_duty(0, 0, 0, 128, 128);
+//    five_color_set_duty(0, 0, 0, 128, 128);
+    five_color_fade(0, 0, 0, 96, 96, 1000);
 }
 
 void aging_test1() {

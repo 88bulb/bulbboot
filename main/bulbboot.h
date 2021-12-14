@@ -24,11 +24,10 @@
 #define ADT_DEVICE_INFO     (0x00)
 #define ADT_AGING_TIME      (0x01)
 #define ADT_TEMP            (0x02)
+#define ADT_DYN_BRIGHTNESS  (0x03)
 
 #define HARDWARE_ID         (0x00)     // bulb
-#define HARDWARE_VERSION    (0x00)     // the very first version
 #define SOFTWARE_ID         (0x00)     // bulbboot
-#define SOFTWARE_VERSION    (0x00)     // the very first version
 
 #define BOOT_SIGNALLED (1 << 1)
 #define STA_GOT_IP (1 << 2)
