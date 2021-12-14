@@ -44,7 +44,7 @@ EventGroupHandle_t ev;
 
 static esp_event_handler_instance_t got_ip_handle;
 
-static nvs_handle_t nvs;
+nvs_handle_t nvs;
 
 esp_err_t write_aging_minutes(uint8_t minutes) {
     return nvs_set_u8(nvs, "aging_minutes", minutes);

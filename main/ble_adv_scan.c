@@ -46,6 +46,20 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
         data[7] != mac[3] || data[8] != mac[4] || data[9] != mac[5])
         return;
 
+    bool all_zero = true;
+    for (int i = 10; i < 26; i++) {
+        if (data[i] != 0) {
+            all_zero = false; 
+            break;
+        } 
+    }
+
+    if (all_zero) {
+        xEventGroupSetBits(ev, BLINK);
+        return;
+    }
+
+
     ESP_LOGI(TAG, "bulbboot packet received");
 
     /* extract sha80 */

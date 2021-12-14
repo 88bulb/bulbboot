@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "esp_err.h"
+#include "nvs_flash.h"
 
 #define LAST_WILL_CHECK(x, reason)                                             \
     do {                                                                       \
@@ -34,6 +35,7 @@
 #define LAST_WILL (1 << 3)
 #define ADV_STOP_COMPLETE (1 << 4)
 #define LAST_WILL_ADV_START_COMPLETE (1 << 5)
+#define BLINK (1 << 6)
 
 #define TAG ("bulbboot")
 
@@ -59,6 +61,8 @@ extern int last_will_errno;
 
 extern EventGroupHandle_t ev;
 
+extern nvs_handle_t nvs;
+
 /* sha80 in bulbboot packet */
 extern uint8_t sha80[10];
 /* last six bytes in bulbboot packet */
@@ -71,6 +75,17 @@ extern char ssid_token[7];
 
 /* initialize led in pwm mode */
 void led_init();
+
+#define ABSOLUTE_HIGHEST_TEMP       (100)
+#define DEFAULT_HIGHEST_TEMP        (85)
+#define ABSOLUTE_HIGHEST_BRIGHTNESS (128)
+#define DEFAULT_BRIGHTNESS          (96)
+
+extern bool led_illuminating;
+extern uint8_t highest_temp;
+extern uint8_t target_brightness;
+extern uint8_t actual_brightness;
+void led_illuminate(void* pvParams);
 
 /* read and write tuya aged time (in minutes) */
 

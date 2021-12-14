@@ -1,8 +1,17 @@
+#include <stdbool.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
+#include "nvs_flash.h"
 
 #include "bulbboot.h"
+
+bool led_illuminating = false;
+uint8_t highest_temp = 0;
+uint8_t target_brightness = 0;
+uint8_t actual_brightness = 0;
 
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
                                 uint32_t w) {
@@ -33,6 +42,7 @@ static void five_color_fade(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
 }
 
 void led_init() {
+    esp_err_t err;
     /* initialize led */
     ledc_timer_config_t ledc_timer = {
         .duty_resolution = LEDC_TIMER_8_BIT, // resolution of PWM duty
@@ -81,8 +91,24 @@ void led_init() {
     }
 
     ledc_fade_func_install(0);
-//    five_color_set_duty(0, 0, 0, 128, 128);
-    five_color_fade(0, 0, 0, 96, 96, 1000);
+
+    err = nvs_get_u8(nvs, "highest_temp", &highest_temp);
+    if (err != ESP_OK) {
+        highest_temp = DEFAULT_HIGHEST_TEMP;
+    } else if (highest_temp > ABSOLUTE_HIGHEST_TEMP) {
+        highest_temp = ABSOLUTE_HIGHEST_TEMP;
+    }
+
+    err = nvs_get_u8(nvs, "target_brightness", &target_brightness);
+    if (err != ESP_OK) {
+        target_brightness = DEFAULT_BRIGHTNESS;
+    } else if (target_brightness > ABSOLUTE_HIGHEST_BRIGHTNESS) {
+        target_brightness = ABSOLUTE_HIGHEST_BRIGHTNESS;
+    }
+
+    actual_brightness = target_brightness;
+
+    five_color_fade(0, 0, 0, actual_brightness, actual_brightness, 1000);
 }
 
 void aging_test1() {
@@ -162,7 +188,7 @@ void aging_test1() {
     }
 
     // finished, low intensity green light
-    five_color_set_duty(0, 64, 0, 0, 0);
+    five_color_set_duty(0, 40, 0, 0, 0);
     ESP_LOGI(TAG, "all aging test finished, green on");
 }
 
@@ -194,5 +220,47 @@ void aging_test2() {
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void blink(uint8_t brightness, int quarter) {
+    five_color_fade(0, 0, 0, 0, 0, quarter - 10);
+    vTaskDelay(quarter / portTICK_PERIOD_MS);
+    vTaskDelay(quarter / portTICK_PERIOD_MS);
+    five_color_fade(0, 0, 0, brightness, brightness, quarter - 10);
+    vTaskDelay(quarter / portTICK_PERIOD_MS);
+    vTaskDelay(quarter / portTICK_PERIOD_MS);
+}
+
+void led_illuminate(void *params) {
+
+    const int short_wait = 1000 / portTICK_PERIOD_MS;
+    const int long_wait = 4000 / portTICK_PERIOD_MS;
+
+    while (1) {
+        int wait;
+        if (temp <= highest_temp) {
+            if (actual_brightness < target_brightness) {
+                actual_brightness++;
+                five_color_set_duty(0, 0, 0, actual_brightness,
+                                    actual_brightness);
+            }
+            wait = long_wait;
+        } else if (temp > highest_temp) {
+            actual_brightness -= 1;
+            wait = short_wait;
+        }
+
+        xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
+
+        if (xEventGroupGetBits(ev) & BLINK) {
+            xEventGroupClearBits(ev, BLINK);
+
+            blink(actual_brightness, 200);
+            blink(actual_brightness, 200);
+            blink(actual_brightness, 200);
+            blink(actual_brightness, 200);
+            blink(actual_brightness, 200);
+        }
     }
 }
