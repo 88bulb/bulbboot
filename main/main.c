@@ -199,7 +199,7 @@ void app_main(void) {
         } else {
             ESP_LOGI(TAG, "tuya_mdev_test1 not found");
             xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-            // normal white TODO
+            led_low_light();
             vTaskDelay(portMAX_DELAY);
         }
     } else if (aging_minutes == 50) {
@@ -219,7 +219,7 @@ void app_main(void) {
 
     /* create ble task */
     xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-    // normal white TODO
+    xTaskCreate(&led_illuminate, "led_illuminate", 4069, NULL, 5, NULL);
     xEventGroupWaitBits(ev, BOOT_SIGNALLED, pdFALSE, pdFALSE, portMAX_DELAY);
 
     /* retrieve ota1 partition */

@@ -77,15 +77,16 @@ extern char ssid_token[7];
 void led_init();
 
 #define ABSOLUTE_HIGHEST_TEMP       (100)
-#define DEFAULT_HIGHEST_TEMP        (85)
+#define DEFAULT_HIGHEST_TEMP        (96)
 #define ABSOLUTE_HIGHEST_BRIGHTNESS (128)
-#define DEFAULT_BRIGHTNESS          (96)
+#define DEFAULT_BRIGHTNESS          (80)
 
 extern bool led_illuminating;
 extern uint8_t highest_temp;
 extern uint8_t target_brightness;
 extern uint8_t actual_brightness;
 void led_illuminate(void* pvParams);
+void led_low_light();
 
 /* read and write tuya aged time (in minutes) */
 

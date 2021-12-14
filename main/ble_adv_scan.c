@@ -227,6 +227,14 @@ void ble_adv_scan(void *params) {
         adv_mfr_data[i++] = 0x02;
         adv_mfr_data[i++] = temp;
 
+        if (led_illuminating) {
+            adv_mfr_data[i++] = 0x04;
+            adv_mfr_data[i++] = 0x03;
+            adv_mfr_data[i++] = highest_temp;
+            adv_mfr_data[i++] = target_brightness;
+            adv_mfr_data[i++] = actual_brightness;
+        }
+
         adv_data.manufacturer_len = i;
 
         if (adv_params.adv_int_min == 0) {

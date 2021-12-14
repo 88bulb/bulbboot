@@ -108,7 +108,8 @@ void led_init() {
 
     actual_brightness = target_brightness;
 
-    five_color_fade(0, 0, 0, actual_brightness, actual_brightness, 1000);
+    five_color_set_duty(0, 0, 0, 0xff, 0);
+    five_color_fade(0, 0, 0, actual_brightness, actual_brightness, 2000);
 }
 
 void aging_test1() {
@@ -233,29 +234,26 @@ void blink(uint8_t brightness, int quarter) {
 }
 
 void led_illuminate(void *params) {
-
-    const int short_wait = 1000 / portTICK_PERIOD_MS;
-    const int long_wait = 4000 / portTICK_PERIOD_MS;
-
+    led_illuminating = true;
+    int wait = 30 * 1000 / portTICK_PERIOD_MS;
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
     while (1) {
-        int wait;
         if (temp <= highest_temp) {
             if (actual_brightness < target_brightness) {
                 actual_brightness++;
                 five_color_set_duty(0, 0, 0, actual_brightness,
                                     actual_brightness);
             }
-            wait = long_wait;
         } else if (temp > highest_temp) {
-            actual_brightness -= 1;
-            wait = short_wait;
+            if (actual_brightness > 0)
+                actual_brightness--;
         }
 
+        five_color_set_duty(0, 0, 0, actual_brightness, actual_brightness);
         xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
 
         if (xEventGroupGetBits(ev) & BLINK) {
             xEventGroupClearBits(ev, BLINK);
-
             blink(actual_brightness, 200);
             blink(actual_brightness, 200);
             blink(actual_brightness, 200);
@@ -263,4 +261,9 @@ void led_illuminate(void *params) {
             blink(actual_brightness, 200);
         }
     }
+}
+
+void led_low_light () {
+    ESP_LOGI(TAG, "low light illuminating");
+    five_color_set_duty(0, 0, 0, 32, 32);
 }
