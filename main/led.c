@@ -7,6 +7,7 @@
 #include "nvs_flash.h"
 
 #include "bulbboot.h"
+#include "temp_sensor.h"
 
 bool led_illuminating = false;
 uint8_t highest_temp = 0;
@@ -263,7 +264,7 @@ void led_illuminate(void *params) {
     }
 }
 
-void led_low_light () {
+void led_low_light() {
     ESP_LOGI(TAG, "low light illuminating");
     five_color_set_duty(0, 0, 0, 32, 32);
 }

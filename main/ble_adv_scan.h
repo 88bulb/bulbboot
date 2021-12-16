@@ -2,4 +2,3 @@
 #define __BLE_ADV_SCAN
 
 #endif
-

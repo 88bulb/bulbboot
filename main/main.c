@@ -18,18 +18,16 @@
 #include "esp_wifi.h"
 #include "bootloader_common.h"
 
-#include "driver/temp_sensor.h"
 #include "esp_ota_ops.h"
 
 #include "version.h"
 
 #include "bulbboot.h"
+#include "temp_sensor.h"
 
 #define PORT (6016)
 
 uint8_t aging_minutes = 0;
-uint8_t temp = 0;
-
 uint8_t sha80[10] = {0};
 uint8_t boot_params[6] = {0};
 char sha80_hex[21] = {0};
@@ -60,32 +58,6 @@ static void nvs_init() {
     }
     ESP_ERROR_CHECK(err);
     ESP_ERROR_CHECK(nvs_open("nvs", NVS_READWRITE, &nvs));
-}
-
-static void temp_sensor_timer_callback(TimerHandle_t timer) {
-    float tsens_out;
-    temp_sensor_read_celsius(&tsens_out);
-    if (tsens_out <= 0) {
-        temp = 0;
-    } else {
-        temp = (uint8_t)tsens_out;
-    }
-    ESP_LOGI(TAG, "temperature %f (float), %u (uint8_t)", tsens_out, temp);
-}
-
-static void temp_sensor_init() {
-    temp_sensor_config_t temp_sensor = TSENS_CONFIG_DEFAULT();
-    temp_sensor_get_config(&temp_sensor);
-    temp_sensor.dac_offset = TSENS_DAC_L0; /* 50-125 degree, error < 3C */
-    temp_sensor_set_config(temp_sensor);
-    temp_sensor_start();
-
-    TimerHandle_t timer =
-        xTimerCreate("temp_timer", 10 * 1000 / portTICK_PERIOD_MS, pdTRUE, 0,
-                     &temp_sensor_timer_callback);
-    // first sensing
-    temp_sensor_timer_callback(timer);
-    xTimerStart(timer, 0);
 }
 
 static void last_will(last_will_t reason, esp_err_t err) {
@@ -143,17 +115,43 @@ static void got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
     xEventGroupSetBits(ev, STA_GOT_IP);
 }
 
-/* (freertos) main task */
-void app_main(void) {
-    esp_err_t err;
-    esp_netif_t *sta_netif = NULL;
-    esp_netif_ip_info_t ip_info;
-    bool found;
-    wifi_ap_record_t ap;
-    rtc_retain_mem_t *rtc_mem;
+/* storing boot_params into rtc_mem custom field and fast boot to given ota
+ * partition */
+static void sleep_boot(esp_partition_pos_t *ota1_pos) {
+    /**
+     * typedef struct {
+     *     esp_partition_pos_t partition;   // Partition of application which
+     *                                      // worked before goes to the deep
+     *                                      // sleep.
+     *     uint16_t reboot_counter;         // Reboot counter. Reset only when
+     *                                      // power is off.
+     *     uint16_t reserve;                //  Reserve
+     * #ifdef CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC
+     *     // Reserved for custom purpose
+     *     uint8_t custom[CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC_SIZE];
+     * #endif
+     *     uint32_t crc;                    // Check sum crc32
+     * } rtc_retain_mem_t;
+     */
+    rtc_retain_mem_t *rtc_mem = bootloader_common_get_rtc_retain_mem();
+    for (int i = 0; i < sizeof(boot_params); i++) {
+        rtc_mem->custom[0] = boot_params[0];
+        rtc_mem->custom[1] = boot_params[1];
+        rtc_mem->custom[2] = boot_params[2];
+        rtc_mem->custom[3] = boot_params[3];
+        rtc_mem->custom[4] = boot_params[4];
+        rtc_mem->custom[5] = boot_params[5];
+    }
 
-    ev = xEventGroupCreateStatic(&eg_data);
+    /* reboot_counter must be set to false, otherwise
+       the crc will be checked. And because we have modified
+       custom field, the check is going to fail and the rtc mem is reset.
+       the custom field is cleared. */
+    bootloader_common_update_rtc_retain_mem(ota1_pos, false);
+    esp_deep_sleep(1000);
+}
 
+static void print_partitions() {
     ESP_LOGI(TAG, "Iterating through partitions...");
     esp_partition_iterator_t it;
     for (it = esp_partition_find(ESP_PARTITION_TYPE_APP,
@@ -172,6 +170,19 @@ void app_main(void) {
                  part->label, part->address, part->size);
     }
     esp_partition_iterator_release(it);
+}
+
+/* (freertos) main task */
+void app_main(void) {
+    esp_err_t err;
+    esp_netif_t *sta_netif = NULL;
+    esp_netif_ip_info_t ip_info;
+    bool found;
+    wifi_ap_record_t ap;
+
+    ev = xEventGroupCreateStatic(&eg_data);
+
+    print_partitions();
 
     ver_init();
     nvs_init();
@@ -256,8 +267,9 @@ void app_main(void) {
                 break;
             }
         }
-        if (match)
-            goto sleepboot;
+        if (match) {
+            sleep_boot(&ota1_pos);
+        }
     }
 
     /* find wifi access point given in boot signal */
@@ -348,36 +360,5 @@ void app_main(void) {
     }
     LAST_WILL_COND(ota1_written < fw_size, OTA_FIRMWARE_UNDERSIZE);
 
-sleepboot:
-    /**
-     * typedef struct {
-     *     esp_partition_pos_t partition;   // Partition of application which
-     *                                      // worked before goes to the deep
-     *                                      // sleep.
-     *     uint16_t reboot_counter;         // Reboot counter. Reset only when
-     *                                      // power is off.
-     *     uint16_t reserve;                //  Reserve
-     * #ifdef CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC
-     *     // Reserved for custom purpose
-     *     uint8_t custom[CONFIG_BOOTLOADER_CUSTOM_RESERVE_RTC_SIZE];
-     * #endif
-     *     uint32_t crc;                    // Check sum crc32
-     * } rtc_retain_mem_t;
-     */
-    rtc_mem = bootloader_common_get_rtc_retain_mem();
-    for (int i = 0; i < sizeof(boot_params); i++) {
-        rtc_mem->custom[0] = boot_params[0];
-        rtc_mem->custom[1] = boot_params[1];
-        rtc_mem->custom[2] = boot_params[2];
-        rtc_mem->custom[3] = boot_params[3];
-        rtc_mem->custom[4] = boot_params[4];
-        rtc_mem->custom[5] = boot_params[5];
-    }
-
-    /* reboot_counter must be set to false, otherwise
-       the crc will be checked. And because we have modified
-       custom field, the check is going to fail and the rtc mem is reset.
-       the custom field is cleared. */
-    bootloader_common_update_rtc_retain_mem(&ota1_pos, false);
-    esp_deep_sleep(1000);
+    sleep_boot(&ota1_pos);
 }

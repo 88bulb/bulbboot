@@ -22,13 +22,13 @@
         }                                                                      \
     } while (0)
 
-#define ADT_DEVICE_INFO     (0x00)
-#define ADT_AGING_TIME      (0x01)
-#define ADT_TEMP            (0x02)
-#define ADT_DYN_BRIGHTNESS  (0x03)
+#define ADT_DEVICE_INFO (0x00)
+#define ADT_AGING_TIME (0x01)
+#define ADT_TEMP (0x02)
+#define ADT_DYN_BRIGHTNESS (0x03)
 
-#define HARDWARE_ID         (0x00)     // bulb
-#define SOFTWARE_ID         (0x00)     // bulbboot
+#define HARDWARE_ID (0x00) // bulb
+#define SOFTWARE_ID (0x00) // bulbboot
 
 #define BOOT_SIGNALLED (1 << 1)
 #define STA_GOT_IP (1 << 2)
@@ -76,25 +76,22 @@ extern char ssid_token[7];
 /* initialize led in pwm mode */
 void led_init();
 
-#define ABSOLUTE_HIGHEST_TEMP       (100)
-#define DEFAULT_HIGHEST_TEMP        (96)
+#define ABSOLUTE_HIGHEST_TEMP (100)
+#define DEFAULT_HIGHEST_TEMP (96)
 #define ABSOLUTE_HIGHEST_BRIGHTNESS (128)
-#define DEFAULT_BRIGHTNESS          (80)
+#define DEFAULT_BRIGHTNESS (80)
 
 extern bool led_illuminating;
 extern uint8_t highest_temp;
 extern uint8_t target_brightness;
 extern uint8_t actual_brightness;
-void led_illuminate(void* pvParams);
+void led_illuminate(void *pvParams);
 void led_low_light();
 
 /* read and write tuya aged time (in minutes) */
 
 extern uint8_t aging_minutes;
 esp_err_t write_aging_minutes(uint8_t minutes);
-
-/* temperature */
-extern uint8_t temp;
 
 /* these functions run in main task */
 void aging_test1();

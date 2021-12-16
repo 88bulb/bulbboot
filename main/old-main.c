@@ -29,7 +29,7 @@
 #define BULBBOOT_REQUESTED (1 << 8)
 #define BULBBOOT_READY (1 << 9)
 
-#define HTTP_BUFFER_SIZE    (16384)
+#define HTTP_BUFFER_SIZE (16384)
 static char http_buffer[HTTP_BUFFER_SIZE] = {};
 
 static const char *TAG = "rootbulb";
@@ -354,10 +354,9 @@ static void do_wifi_scan() {
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_num));
 }
 
-static void connect_to_ap() {
-}
+static void connect_to_ap() {}
 
-static esp_err_t update_ota1(const esp_partition_t *ota1, const char* url) {
+static esp_err_t update_ota1(const esp_partition_t *ota1, const char *url) {
     esp_err_t err;
     int ota1_written = 0;
 
@@ -381,7 +380,7 @@ static esp_err_t update_ota1(const esp_partition_t *ota1, const char* url) {
         goto cleanup;
     }
 
-    if (content_length > ota1 -> size) {
+    if (content_length > ota1->size) {
         goto cleanup;
     }
 
@@ -416,7 +415,7 @@ static esp_err_t update_ota1(const esp_partition_t *ota1, const char* url) {
             goto cleanup;
         }
 
-        err = esp_partition_write(ota1, ota1_written, http_buffer, data_read);    
+        err = esp_partition_write(ota1, ota1_written, http_buffer, data_read);
         if (err != ESP_OK) {
             goto cleanup;
         }
@@ -426,9 +425,8 @@ static esp_err_t update_ota1(const esp_partition_t *ota1, const char* url) {
 
 cleanup:
     esp_http_client_cleanup(client);
-    return ESP_FAIL;    
+    return ESP_FAIL;
 }
-
 
 /**
  *
@@ -447,7 +445,7 @@ static void ota_task(void *pvParameter) {
     // TODO find ap meets requirement
     // 1. containing some predefined hex string
     // 2. open wifi
-    
+
     connect_to_ap();
 
     // Got IP
