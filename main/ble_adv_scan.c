@@ -49,9 +49,9 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
     bool all_zero = true;
     for (int i = 10; i < 26; i++) {
         if (data[i] != 0) {
-            all_zero = false; 
+            all_zero = false;
             break;
-        } 
+        }
     }
 
     if (all_zero) {
@@ -59,8 +59,7 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
         return;
     }
 
-
-    ESP_LOGI(TAG, "bulbboot packet received");
+    ESP_LOGI(TAG, "bulbboot command received");
 
     /* extract sha80 */
     sha80[0] = data[10];
@@ -238,11 +237,11 @@ void ble_adv_scan(void *params) {
         adv_data.manufacturer_len = i;
 
         if (adv_params.adv_int_min == 0) {
-            adv_params.adv_int_min = 0x200;     // 320ms
-            adv_params.adv_int_max = 0x280;     // 400ms
+            adv_params.adv_int_min = 0x200; // 320ms
+            adv_params.adv_int_max = 0x280; // 400ms
         } else {
-            adv_params.adv_int_min = 0x4000;    // 16384ms
-            adv_params.adv_int_max = 0x4000;    // 16384ms
+            adv_params.adv_int_min = 0x4000; // 16384ms
+            adv_params.adv_int_max = 0x4000; // 16384ms
         }
 
         ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
