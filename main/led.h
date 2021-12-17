@@ -8,7 +8,7 @@
 
 extern uint8_t aging_minutes;
 extern uint8_t highest_temp;
-extern int8_t color_temp;
+extern uint8_t color_temp;
 extern uint8_t target_brightness;
 extern uint8_t actual_brightness;
 extern bool led_illuminating;
