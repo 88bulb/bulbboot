@@ -26,6 +26,7 @@
 #include "led.h"
 #include "wifi.h"
 #include "temp_sensor.h"
+#include "ble_adv_scan.h"
 
 #define PORT (6016)
 

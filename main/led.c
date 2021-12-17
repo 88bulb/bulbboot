@@ -233,14 +233,12 @@ static void illuminate(void *params) {
 
         five_color_set_duty(0, 0, 0, cold, warm);
         xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
-
         if (xEventGroupGetBits(ev) & BLINK) {
+            blink(cold, warm, 100);
+            blink(cold, warm, 100);
+            blink(cold, warm, 100);
+            blink(cold, warm, 100);
             xEventGroupClearBits(ev, BLINK);
-            blink(cold, warm, 200);
-            blink(cold, warm, 200);
-            blink(cold, warm, 200);
-            blink(cold, warm, 200);
-            blink(cold, warm, 200);
         }
     }
 }
@@ -248,8 +246,17 @@ static void illuminate(void *params) {
 static void low_light() {
     ESP_LOGI(TAG, "low light");
     wait_fade_finish();
-    five_color_set_duty(0, 0, 0, 32, 32);
-    vTaskDelay(portMAX_DELAY);
+    while (1) {
+        five_color_set_duty(0, 0, 0, 32, 32);
+        xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
+        if (xEventGroupGetBits(ev) & BLINK) {
+            blink(32, 32, 100);
+            blink(32, 32, 100);
+            blink(32, 32, 100);
+            blink(32, 32, 100);
+            xEventGroupClearBits(ev, BLINK);
+        }
+    }
 }
 
 void led_init() {

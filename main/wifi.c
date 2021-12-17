@@ -65,7 +65,7 @@ esp_err_t wifi_connect(const uint8_t *ssid, esp_netif_ip_info_t *ip_info) {
                  * deprecated and not advisable to be used. Incase your Access
                  * point doesn't support WPA2, these mode can be enabled by
                  * commenting below line */
-                .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+                // .threshold.authmode = WIFI_AUTH_WPA2_PSK,
                 .pmf_cfg = {.capable = true, .required = false},
             },
     };
@@ -87,7 +87,7 @@ esp_err_t wifi_connect(const uint8_t *ssid, esp_netif_ip_info_t *ip_info) {
 
     /* wait at most 20 seconds */
     xEventGroupWaitBits(ev, STA_GOT_IP, pdFALSE, pdFALSE,
-                        20 * 1000 / portTICK_PERIOD_MS);
+                        15 * 1000 / portTICK_PERIOD_MS);
     if (!(xEventGroupGetBits(ev) & STA_GOT_IP)) {
         return ESP_ERR_TIMEOUT;
     }

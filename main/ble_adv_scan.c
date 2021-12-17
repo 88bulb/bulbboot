@@ -49,7 +49,8 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
         return;
 
     bool all_zero = true;
-    for (int i = 10; i < 26; i++) {
+    // data[10] could be anything (seq)
+    for (int i = 11; i < 26; i++) {
         if (data[i] != 0) {
             all_zero = false;
             break;
@@ -246,13 +247,13 @@ void ble_adv_scan(void *params) {
             adv_params.adv_int_min = 0x400; // 640ms
             adv_params.adv_int_max = 0x800; // 1280ms
         } else {
-            adv_params.adv_int_min = 0x8000; // 32768ms
-            adv_params.adv_int_max = 0x8000; // 32768ms
+            adv_params.adv_int_min = 0x4000; // 10240ms
+            adv_params.adv_int_max = 0x4000; // 10240ms
         }
 
         ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
         xEventGroupWaitBits(ev, LAST_WILL, pdFALSE, pdFALSE,
-                            16 * 1000 / portTICK_PERIOD_MS);
+                            10 * 1000 / portTICK_PERIOD_MS);
 
         ESP_ERROR_CHECK(esp_ble_gap_stop_advertising());
         xEventGroupWaitBits(ev, ADV_STOP_COMPLETE, pdFALSE, pdFALSE,
