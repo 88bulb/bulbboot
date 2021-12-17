@@ -57,7 +57,4 @@ extern char sha80_hex[21];
    boot params are used as ssid token */
 extern char ssid_token[7];
 
-/* freertos task */
-void ble_adv_scan(void *pvParameters);
-
 #endif

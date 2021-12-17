@@ -152,12 +152,14 @@ static void aging_test1() {
     // finished, low intensity green light
     five_color_set_duty(0, 40, 0, 0, 0);
     ESP_LOGI(TAG, "all aging test finished, green on");
+    vTaskDelay(portMAX_DELAY);
 }
 
 static void aging_test2() {
     wait_fade_finish();
     ESP_LOGI(TAG, "breathing all leds endlessly");
-    five_color_set_duty(0, 0, 0, 0, 0);
+    five_color_fade(0, 0, 0, 0, 0, 1000);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
     while (1) {
         five_color_fade(255, 0, 0, 0, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);

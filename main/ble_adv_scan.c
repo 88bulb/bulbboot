@@ -243,16 +243,16 @@ void ble_adv_scan(void *params) {
         adv_data.manufacturer_len = i;
 
         if (adv_params.adv_int_min == 0) {
-            adv_params.adv_int_min = 0x200; // 320ms
-            adv_params.adv_int_max = 0x280; // 400ms
+            adv_params.adv_int_min = 0x400; // 640ms
+            adv_params.adv_int_max = 0x800; // 1280ms
         } else {
-            adv_params.adv_int_min = 0x4000; // 16384ms
-            adv_params.adv_int_max = 0x4000; // 16384ms
+            adv_params.adv_int_min = 0x8000; // 32768ms
+            adv_params.adv_int_max = 0x8000; // 32768ms
         }
 
         ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
         xEventGroupWaitBits(ev, LAST_WILL, pdFALSE, pdFALSE,
-                            8 * 1000 / portTICK_PERIOD_MS);
+                            16 * 1000 / portTICK_PERIOD_MS);
 
         ESP_ERROR_CHECK(esp_ble_gap_stop_advertising());
         xEventGroupWaitBits(ev, ADV_STOP_COMPLETE, pdFALSE, pdFALSE,
