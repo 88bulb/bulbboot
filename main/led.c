@@ -198,10 +198,11 @@ static void blink(uint8_t cold, uint8_t warm, int quarter) {
 }
 
 static void illuminate(void *params) {
-    ESP_LOGI(TAG, "illuminate");
+    ESP_LOGI(TAG, "illumination mode");
     TickType_t wait = 60 * 1000 / portTICK_PERIOD_MS;
-    led_illuminating = true;
+    xEventGroupSetBits(ev, BOOTABLE);
     wait_fade_finish();
+    led_illuminating = true;
     while (1) {
         if (temp <= highest_temp) {
             if (actual_brightness < target_brightness) {
@@ -244,6 +245,7 @@ static void illuminate(void *params) {
 }
 
 static void low_light() {
+    TickType_t wait = 60 * 1000 / portTICK_PERIOD_MS;
     ESP_LOGI(TAG, "low light");
     wait_fade_finish();
     while (1) {

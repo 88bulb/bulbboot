@@ -246,12 +246,26 @@ void app_main(void) {
 
     xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
 
+    bool bootable = false;
+    bool boot_signalled = false;
+
     while (1) {
         xEventGroupWaitBits(ev, BOOTABLE | BOOT_SIGNALLED, pdFALSE, pdFALSE,
                             portMAX_DELAY);
         EventBits_t bits = xEventGroupGetBits(ev);
-        if ((bits & BOOTABLE) && (bits && BOOT_SIGNALLED))
+        if (bits & BOOTABLE) {
+            xEventGroupClearBits(ev, BOOTABLE);
+            bootable = true;
+        }
+
+        if (bits & BOOT_SIGNALLED) {
+            xEventGroupClearBits(ev, BOOT_SIGNALLED);
+            boot_signalled = true;
+        }
+
+        if (bootable && boot_signalled)
             break;
     };
+
     boot_ota1();
 }
