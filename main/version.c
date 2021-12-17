@@ -11,9 +11,9 @@ uint8_t hex2u8(char high, char low) {
     if (high >= '0' && high <= '9') {
         h = high - '0';
     } else if (high >= 'a' && high <= 'f') {
-        h = high - 'a';
+        h = high - 'a' + 10;
     } else if (high >= 'A' && high <= 'F') {
-        h = high - 'A';
+        h = high - 'A' + 10;
     } else {
         return 0xff;
     }
@@ -21,9 +21,9 @@ uint8_t hex2u8(char high, char low) {
     if (low >= '0' && low <= '9') {
         l = low - '0';
     } else if (low >= 'a' && low <= 'f') {
-        l = low - 'a';
+        l = low - 'a' + 10;
     } else if (low >= 'A' && low <= 'F') {
-        l = low - 'A';
+        l = low - 'A' + 10;
     } else {
         return 0xff;
     }
