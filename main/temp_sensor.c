@@ -29,6 +29,5 @@ void temp_sensor_init() {
         xTimerCreate("temp_timer", 10 * 1000 / portTICK_PERIOD_MS, pdTRUE, 0,
                      &temp_sensor_timer_callback);
     // first sensing
-    temp_sensor_timer_callback(timer);
     xTimerStart(timer, 0);
 }

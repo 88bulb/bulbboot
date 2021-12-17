@@ -17,6 +17,7 @@
 #include "esp_gap_ble_api.h"
 
 #include "bulbboot.h"
+#include "led.h"
 #include "version.h"
 #include "temp_sensor.h"
 
@@ -56,6 +57,7 @@ static void handle_mfr_data(uint8_t *bda, uint8_t *data, size_t data_len) {
     }
 
     if (all_zero) {
+        ESP_LOGI(TAG, "blink command received");
         xEventGroupSetBits(ev, BLINK);
         return;
     }
@@ -223,16 +225,19 @@ void ble_adv_scan(void *params) {
         adv_mfr_data[i++] = 0x01;
         adv_mfr_data[i++] = aging_minutes;
 
-        adv_mfr_data[i++] = 0x02;
-        adv_mfr_data[i++] = 0x02;
-        adv_mfr_data[i++] = temp;
+        if (temp > 0) {
+            adv_mfr_data[i++] = 0x02;
+            adv_mfr_data[i++] = 0x02;
+            adv_mfr_data[i++] = temp;
+        }
 
         if (led_illuminating) {
-            adv_mfr_data[i++] = 0x04;
+            adv_mfr_data[i++] = 0x05;
             adv_mfr_data[i++] = 0x03;
             adv_mfr_data[i++] = highest_temp;
             adv_mfr_data[i++] = target_brightness;
             adv_mfr_data[i++] = actual_brightness;
+            adv_mfr_data[i++] = (uint8_t)color_temp;
         }
 
         adv_data.manufacturer_len = i;

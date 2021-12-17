@@ -7,21 +7,6 @@
 #include "esp_err.h"
 #include "nvs_flash.h"
 
-#define LAST_WILL_CHECK(x, reason)                                             \
-    do {                                                                       \
-        esp_err_t __err = (x);                                                 \
-        if (__err != ESP_OK) {                                                 \
-            last_will((reason), __err);                                        \
-        }                                                                      \
-    } while (0)
-
-#define LAST_WILL_COND(x, reason)                                              \
-    do {                                                                       \
-        if ((x)) {                                                             \
-            last_will((reason), ESP_OK);                                       \
-        }                                                                      \
-    } while (0)
-
 #define ADT_DEVICE_INFO (0x00)
 #define ADT_AGING_TIME (0x01)
 #define ADT_TEMP (0x02)
@@ -30,6 +15,7 @@
 #define HARDWARE_ID (0x00) // bulb
 #define SOFTWARE_ID (0x00) // bulbboot
 
+#define BOOTABLE (1 << 0)
 #define BOOT_SIGNALLED (1 << 1)
 #define STA_GOT_IP (1 << 2)
 #define LAST_WILL (1 << 3)
@@ -61,8 +47,6 @@ extern int last_will_errno;
 
 extern EventGroupHandle_t ev;
 
-extern nvs_handle_t nvs;
-
 /* sha80 in bulbboot packet */
 extern uint8_t sha80[10];
 /* last six bytes in bulbboot packet */
@@ -72,30 +56,6 @@ extern char sha80_hex[21];
 /* the hex string of first 3 bytes in
    boot params are used as ssid token */
 extern char ssid_token[7];
-
-/* initialize led in pwm mode */
-void led_init();
-
-#define ABSOLUTE_HIGHEST_TEMP (100)
-#define DEFAULT_HIGHEST_TEMP (96)
-#define ABSOLUTE_HIGHEST_BRIGHTNESS (128)
-#define DEFAULT_BRIGHTNESS (80)
-
-extern bool led_illuminating;
-extern uint8_t highest_temp;
-extern uint8_t target_brightness;
-extern uint8_t actual_brightness;
-void led_illuminate(void *pvParams);
-void led_low_light();
-
-/* read and write tuya aged time (in minutes) */
-
-extern uint8_t aging_minutes;
-esp_err_t write_aging_minutes(uint8_t minutes);
-
-/* these functions run in main task */
-void aging_test1();
-void aging_test2();
 
 /* freertos task */
 void ble_adv_scan(void *pvParameters);

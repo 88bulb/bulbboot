@@ -23,11 +23,27 @@
 #include "version.h"
 
 #include "bulbboot.h"
+#include "led.h"
+#include "wifi.h"
 #include "temp_sensor.h"
 
 #define PORT (6016)
 
-uint8_t aging_minutes = 0;
+#define LAST_WILL_CHECK(x, reason)                                             \
+    do {                                                                       \
+        esp_err_t __err = (x);                                                 \
+        if (__err != ESP_OK) {                                                 \
+            last_will((reason), __err);                                        \
+        }                                                                      \
+    } while (0)
+
+#define LAST_WILL_COND(x, reason)                                              \
+    do {                                                                       \
+        if ((x)) {                                                             \
+            last_will((reason), ESP_OK);                                       \
+        }                                                                      \
+    } while (0)
+
 uint8_t sha80[10] = {0};
 uint8_t boot_params[6] = {0};
 char sha80_hex[21] = {0};
@@ -39,14 +55,8 @@ int last_will_errno;
 
 static StaticEventGroup_t eg_data;
 EventGroupHandle_t ev;
-
-static esp_event_handler_instance_t got_ip_handle;
-
-nvs_handle_t nvs;
-
-esp_err_t write_aging_minutes(uint8_t minutes) {
-    return nvs_set_u8(nvs, "aging_minutes", minutes);
-}
+static bool found;
+static wifi_ap_record_t ap;
 
 static void nvs_init() {
     /* init nvs flash */
@@ -57,7 +67,6 @@ static void nvs_init() {
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
-    ESP_ERROR_CHECK(nvs_open("nvs", NVS_READWRITE, &nvs));
 }
 
 static void last_will(last_will_t reason, esp_err_t err) {
@@ -70,49 +79,6 @@ static void last_will(last_will_t reason, esp_err_t err) {
 
     xEventGroupSetBits(ev, LAST_WILL);
     vTaskDelay(portMAX_DELAY);
-}
-
-static esp_netif_t *wifi_init() {
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_t *netif = esp_netif_create_default_wifi_sta();
-    assert(netif);
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    return netif;
-}
-
-static void wifi_scan(char *token, bool stop_after_scan, bool *found,
-                      wifi_ap_record_t *ap) {
-    static wifi_ap_record_t ap_record[20] = {};
-    uint16_t ap_record_max = 20;
-    uint16_t ap_num = 0;
-
-    ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_record_max, ap_record));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_num));
-
-    *found = false;
-    for (uint16_t i = 0; i < ap_num; i++) {
-        char *ssid_str = (char *)ap_record[i].ssid;
-        if (strstr(ssid_str, token)) {
-            *found = true;
-            if (ap)
-                memcpy(ap, &ap_record[i], sizeof(wifi_ap_record_t));
-            break;
-        }
-    }
-
-    if (stop_after_scan) {
-        ESP_ERROR_CHECK(esp_wifi_stop());
-    }
-}
-
-/* got ip handler */
-static void got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
-    xEventGroupSetBits(ev, STA_GOT_IP);
 }
 
 /* storing boot_params into rtc_mem custom field and fast boot to given ota
@@ -172,67 +138,8 @@ static void print_partitions() {
     esp_partition_iterator_release(it);
 }
 
-/* (freertos) main task */
-void app_main(void) {
+static void boot_ota1() {
     esp_err_t err;
-    esp_netif_t *sta_netif = NULL;
-    esp_netif_ip_info_t ip_info;
-    bool found;
-    wifi_ap_record_t ap;
-
-    ev = xEventGroupCreateStatic(&eg_data);
-
-    print_partitions();
-
-    ver_init();
-    nvs_init();
-    led_init();
-    temp_sensor_init();
-    sta_netif = wifi_init();
-
-    err = nvs_get_u8(nvs, "aging_minutes", &aging_minutes);
-    if (err != ESP_OK)
-        aging_minutes = 0;
-
-    ESP_LOGI(TAG, "aging minutes: %u", aging_minutes);
-
-    if (aging_minutes < 50) {
-        wifi_scan("tuya_mdev_test1", true, &found, &ap);
-        if (found) {
-            if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test1")) {
-                ESP_LOGI(TAG, "found tuya_mdev_test1 ap");
-                xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-                aging_test1();
-                vTaskDelay(portMAX_DELAY);
-            } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test1")) {
-                ESP_LOGI(TAG, "aging time set to 0xee (238)");
-                write_aging_minutes(0xee);
-            }
-        } else {
-            ESP_LOGI(TAG, "tuya_mdev_test1 not found");
-            xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-            led_low_light();
-            vTaskDelay(portMAX_DELAY);
-        }
-    } else if (aging_minutes == 50) {
-        wifi_scan("tuya_mdev_test2", true, &found, &ap);
-        if (found) {
-            if (0 == strcmp((char *)ap.ssid, "tuya_mdev_test2")) {
-                ESP_LOGI(TAG, "found tuya_mdev_test2");
-                xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-                // this function should loop forever according to definition
-                aging_test2();
-            } else if (0 == strcmp((char *)ap.ssid, "skip_tuya_mdev_test2")) {
-                ESP_LOGI(TAG, "aging time set to 0xff (255)");
-                write_aging_minutes(0xff);
-            }
-        }
-    }
-
-    /* create ble task */
-    xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
-    xTaskCreate(&led_illuminate, "led_illuminate", 4069, NULL, 5, NULL);
-    xEventGroupWaitBits(ev, BOOT_SIGNALLED, pdFALSE, pdFALSE, portMAX_DELAY);
 
     /* retrieve ota1 partition */
     esp_partition_t *ota1 = (esp_partition_t *)esp_partition_find_first(
@@ -267,53 +174,16 @@ void app_main(void) {
                 break;
             }
         }
-        if (match) {
+        if (match)
             sleep_boot(&ota1_pos);
-        }
     }
 
     /* find wifi access point given in boot signal */
     wifi_scan((char *)ssid_token, false, &found, &ap);
     LAST_WILL_COND(!found, OTA_AP_NOT_FOUND);
 
-    /* connect to ap */
-    wifi_config_t wifi_config = {
-        .sta =
-            {
-                /* Setting a password implies station will connect to all
-                 * security modes including WEP/WPA. However these modes are
-                 * deprecated and not advisable to be used. Incase your Access
-                 * point doesn't support WPA2, these mode can be enabled by
-                 * commenting below line */
-                .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-                .pmf_cfg = {.capable = true, .required = false},
-            },
-    };
-    memcpy(wifi_config.sta.ssid, ap.ssid, sizeof(wifi_config.sta.ssid));
-    char *asdf = (char *)wifi_config.sta.ssid;
-    asdf += sizeof(wifi_config.sta.ssid);
-    strcpy(asdf, TAG);
-    for (int i = 0; i < 8; i++) {
-        if (asdf[i] == 0x62)
-            asdf[i] = 0x36;
-        if (asdf[i] == 0x6f)
-            asdf[i] = 0x30;
-    }
-
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip, NULL, &got_ip_handle));
-
-    ESP_ERROR_CHECK(esp_wifi_connect());
-
-    /* wait at most 30 seconds */
-    xEventGroupWaitBits(ev, STA_GOT_IP, pdFALSE, pdFALSE,
-                        30 * 1000 / portTICK_PERIOD_MS);
-    LAST_WILL_COND(!(xEventGroupGetBits(ev) & STA_GOT_IP), OTA_NETWORK_TIMEOUT);
-
-    /* get ip address */
-    ESP_ERROR_CHECK(esp_netif_get_ip_info(sta_netif, &ip_info));
+    esp_netif_ip_info_t ip_info = {};
+    LAST_WILL_CHECK(wifi_connect(ap.ssid, &ip_info), OTA_NETWORK_TIMEOUT);
 
     /* connect to server (gateway) */
     struct sockaddr_in dest_addr;
@@ -361,4 +231,26 @@ void app_main(void) {
     LAST_WILL_COND(ota1_written < fw_size, OTA_FIRMWARE_UNDERSIZE);
 
     sleep_boot(&ota1_pos);
+}
+
+void app_main(void) {
+    ev = xEventGroupCreateStatic(&eg_data);
+    nvs_init();
+    led_init();
+    print_partitions();
+    ver_init();
+    temp_sensor_init();
+    wifi_init();
+    led_run();
+
+    xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
+
+    while (1) {
+        xEventGroupWaitBits(ev, BOOTABLE | BOOT_SIGNALLED, pdFALSE, pdFALSE,
+                            portMAX_DELAY);
+        EventBits_t bits = xEventGroupGetBits(ev);
+        if ((bits & BOOTABLE) && (bits && BOOT_SIGNALLED))
+            break;
+    };
+    boot_ota1();
 }
