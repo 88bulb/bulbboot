@@ -17,17 +17,26 @@ uint8_t highest_temp = 0;
 uint8_t target_brightness = 0;
 uint8_t actual_brightness = 0;
 uint8_t color_temp = 0;
+uint8_t cold_white_brightness = 0;
+uint8_t warm_white_brightness = 0;
+
 bool led_illuminating = false;
 
 static nvs_handle_t nvs;
 static TickType_t initial_fade_start = 0;
-static TickType_t initial_fade_duration_ms = 1000;
 static bool found;
 static wifi_ap_record_t ap;
 
 static esp_err_t update_aging_minutes(uint8_t minutes) {
     aging_minutes = minutes;
     return nvs_set_u8(nvs, "aging_minutes", minutes);
+}
+
+static void update_white_brightness() {
+    warm_white_brightness =
+        (uint8_t)((int)actual_brightness * (int)color_temp / 255);
+    cold_white_brightness =
+        (uint8_t)((int)actual_brightness * (int)(255 - color_temp) / 255);
 }
 
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
@@ -58,13 +67,13 @@ static void five_color_fade(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
     ledc_fade_start(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_4, LEDC_FADE_NO_WAIT);
 }
 
-static void wait_fade_finish() {
+static void wait_initial_fade() {
     TickType_t current = xTaskGetTickCount();
 
-    ESP_LOGI(TAG, "wait_fade_finish, current tick: %d", current);
+    ESP_LOGI(TAG, "wait_initial_fade, current tick: %d", current);
 
     TickType_t elapse = current - initial_fade_start;
-    TickType_t duration = initial_fade_duration_ms / portTICK_PERIOD_MS;
+    TickType_t duration = FADE_DURATION_MS / portTICK_PERIOD_MS;
     if (elapse < duration) {
         ESP_LOGI(TAG, "wait %d ticks (%d milliseconds) for fade finish",
                  (duration - elapse), (duration - elapse) * portTICK_PERIOD_MS);
@@ -75,7 +84,7 @@ static void wait_fade_finish() {
 }
 
 static void aging_test1() {
-    wait_fade_finish();
+    wait_initial_fade();
 
     if (aging_minutes) {
         ESP_LOGI(TAG, "continuing aging test");
@@ -87,15 +96,15 @@ static void aging_test1() {
         ESP_LOGI(TAG, "cycling led colors for 2 minutes");
         /* five seconds per cycle, 24 cycles = 2 minutes, right? */
         for (int i = 0; i < 24; i++) {
-            five_color_set_duty(255, 0, 0, 0, 0);
+            five_color_set_duty(TESTING_COLOR_BRIGHTNESS, 0, 0, 0, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 255, 0, 0, 0);
+            five_color_set_duty(0, TESTING_COLOR_BRIGHTNESS, 0, 0, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 255, 0, 0);
+            five_color_set_duty(0, 0, TESTING_COLOR_BRIGHTNESS, 0, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 192, 0);
+            five_color_set_duty(0, 0, 0, TESTING_WHITE_BRIGHTNESS, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 0, 192);
+            five_color_set_duty(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
@@ -103,22 +112,22 @@ static void aging_test1() {
     if (aging_minutes) {
         ESP_LOGI(TAG, "cycling all leds 5 times before continuing");
         for (int i = 0; i < 5; i++) {
-            five_color_set_duty(255, 0, 0, 0, 0);
+            five_color_set_duty(TESTING_COLOR_BRIGHTNESS, 0, 0, 0, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 255, 0, 0, 0);
+            five_color_set_duty(0, TESTING_COLOR_BRIGHTNESS, 0, 0, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 255, 0, 0);
+            five_color_set_duty(0, 0, TESTING_COLOR_BRIGHTNESS, 0, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 192, 0);
+            five_color_set_duty(0, 0, 0, TESTING_WHITE_BRIGHTNESS, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS);
-            five_color_set_duty(0, 0, 0, 0, 192);
+            five_color_set_duty(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
     }
 
     if (aging_minutes < 20) {
         ESP_LOGI(TAG, "aging cold white led at full brightness");
-        five_color_set_duty(0, 0, 0, 255, 0);
+        five_color_set_duty(0, 0, 0, TESTING_WHITE_BRIGHTNESS, 0);
         do {
             ESP_LOGI(TAG, "%u minutes left", 20 - aging_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
@@ -129,7 +138,7 @@ static void aging_test1() {
 
     if (aging_minutes < 40) {
         ESP_LOGI(TAG, "aging warm white led at full brightness");
-        five_color_set_duty(0, 0, 0, 0, 255);
+        five_color_set_duty(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS);
         do {
             ESP_LOGI(TAG, "%u minutes left", 40 - aging_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
@@ -140,7 +149,8 @@ static void aging_test1() {
 
     if (aging_minutes < 50) {
         ESP_LOGI(TAG, "aging color leds at full brightness");
-        five_color_set_duty(192, 192, 192, 0, 0);
+        five_color_set_duty(TESTING_COLOR_BRIGHTNESS, TESTING_COLOR_BRIGHTNESS,
+                            TESTING_COLOR_BRIGHTNESS, 0, 0);
         do {
             ESP_LOGI(TAG, "%u minutes left", 50 - aging_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
@@ -150,104 +160,111 @@ static void aging_test1() {
     }
 
     // finished, low intensity green light
-    five_color_set_duty(0, 40, 0, 0, 0);
+    five_color_set_duty(0, LOW_LIGHT_BRIGHTNESS, 0, 0, 0);
     ESP_LOGI(TAG, "all aging test finished, green on");
     vTaskDelay(portMAX_DELAY);
 }
 
 static void aging_test2() {
-    wait_fade_finish();
+    wait_initial_fade();
     ESP_LOGI(TAG, "breathing all leds endlessly");
-    five_color_fade(0, 0, 0, 0, 0, 1000);
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    five_color_fade(0, 0, 0, 0, 0, FADE_DURATION_MS);
+    vTaskDelay(2 * FADE_DURATION_MS / portTICK_PERIOD_MS);
     while (1) {
-        five_color_fade(255, 0, 0, 0, 0, 1000);
+        five_color_fade(TESTING_COLOR_BRIGHTNESS, 0, 0, 0, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 255, 0, 0, 0, 1000);
+        five_color_fade(0, TESTING_COLOR_BRIGHTNESS, 0, 0, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 0, 255, 0, 0, 1000);
+        five_color_fade(0, 0, TESTING_COLOR_BRIGHTNESS, 0, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 0, 0, 192, 0, 1000);
+        five_color_fade(0, 0, 0, TESTING_WHITE_BRIGHTNESS, 0, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        five_color_fade(0, 0, 0, 0, 192, 1000);
+        five_color_fade(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS, 1000);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         five_color_fade(0, 0, 0, 0, 0, 990);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
-static uint8_t warm_brightness(uint8_t brightness) {
-    return (uint8_t)((int)brightness * (int)color_temp / 255);
-}
-
-static uint8_t cold_brightness(uint8_t brightness) {
-    return (uint8_t)((int)brightness * (int)(255 - color_temp) / 255);
-}
-
-static void blink(uint8_t cold, uint8_t warm, int quarter) {
+static void blink(int quarter) {
     five_color_fade(0, 0, 0, 0, 0, quarter - 10);
     vTaskDelay(quarter / portTICK_PERIOD_MS);
     vTaskDelay(quarter / portTICK_PERIOD_MS);
-    five_color_fade(0, 0, 0, cold, warm, quarter - 10);
+    five_color_fade(0, 0, 0, cold_white_brightness, warm_white_brightness,
+                    quarter - 10);
     vTaskDelay(quarter / portTICK_PERIOD_MS);
     vTaskDelay(quarter / portTICK_PERIOD_MS);
 }
 
 static void illuminate(void *params) {
+    TickType_t sec = 1000 / portTICK_PERIOD_MS;
+    TickType_t wait;
+
     ESP_LOGI(TAG, "illumination mode");
-    TickType_t wait = 60 * 1000 / portTICK_PERIOD_MS;
+    wait_initial_fade();
+
     xEventGroupSetBits(ev, BOOTABLE);
-    wait_fade_finish();
     led_illuminating = true;
     while (1) {
-        if (temp <= highest_temp) {
-            if (actual_brightness < target_brightness) {
-                actual_brightness++;
-                five_color_set_duty(0, 0, 0, actual_brightness,
-                                    actual_brightness);
-            }
-        } else if (temp > highest_temp) {
-            if (actual_brightness > 0)
-                actual_brightness--;
+        if (temp >= ABSOLUTE_HIGHEST_TEMP) {
+            actual_brightness = LOWEST_LIGHT_BRIGHTNESS;
+        } else if (temp <= highest_temp &&
+                   actual_brightness < target_brightness) {
+            actual_brightness++;
+        } else if (temp > highest_temp &&
+                   actual_brightness > LOWEST_LIGHT_BRIGHTNESS) {
+            actual_brightness--;
         }
 
-        five_color_set_duty(0, 0, 0, cold_brightness(actual_brightness),
-                            warm_brightness(actual_brightness));
+        update_white_brightness();
+        five_color_set_duty(0, 0, 0, cold_white_brightness,
+                            warm_white_brightness);
+
+        if (temp > ABSOLUTE_HIGHEST_TEMP - 10) {
+            wait = 15 * sec;
+        } else {
+            wait = 120 * sec;
+        }
+
         xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
+
         if (xEventGroupGetBits(ev) & BLINK) {
-            blink(cold, warm, 100);
-            blink(cold, warm, 100);
-            blink(cold, warm, 100);
-            blink(cold, warm, 100);
+            for (int i = 0; i < BLINK_TIMES; i++) {
+                blink(100);
+            }
             xEventGroupClearBits(ev, BLINK);
         }
     }
 }
 
-static void low_light() {
-    TickType_t wait = 60 * 1000 / portTICK_PERIOD_MS;
-    ESP_LOGI(TAG, "low light");
-    wait_fade_finish();
+static void low_light_illuminate() {
+    ESP_LOGI(TAG, "low light illuminating");
+    wait_initial_fade();
+
+    actual_brightness = LOW_LIGHT_BRIGHTNESS;
+    update_white_brightness();
+    five_color_fade(0, 0, 0, cold_white_brightness, warm_white_brightness,
+                    FADE_DURATION_MS - 10);
+    vTaskDelay(FADE_DURATION_MS / portTICK_PERIOD_MS);
+
     while (1) {
-        five_color_set_duty(0, 0, 0, 32, 32);
-        xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
+        xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, portMAX_DELAY);
         if (xEventGroupGetBits(ev) & BLINK) {
-            blink(32, 32, 100);
-            blink(32, 32, 100);
-            blink(32, 32, 100);
-            blink(32, 32, 100);
+            for (int i = 0; i < BLINK_TIMES; i++) {
+                blink(100);
+            }
             xEventGroupClearBits(ev, BLINK);
         }
     }
@@ -315,8 +332,8 @@ void led_init() {
     err = nvs_get_u8(nvs, "highest_temp", &highest_temp);
     if (err != ESP_OK) {
         highest_temp = DEFAULT_HIGHEST_TEMP;
-    } else if (highest_temp > ABSOLUTE_HIGHEST_TEMP) {
-        highest_temp = ABSOLUTE_HIGHEST_TEMP;
+    } else if (highest_temp > ALLOWED_HIGHEST_TEMP) {
+        highest_temp = ALLOWED_HIGHEST_TEMP;
     }
 
     ESP_LOGI(TAG, "highest temp: %u", highest_temp);
@@ -330,27 +347,23 @@ void led_init() {
 
     ESP_LOGI(TAG, "target brightness: %u", target_brightness);
 
-    actual_brightness = target_brightness;
-
     err = nvs_get_u8(nvs, "color_temp", &color_temp);
     if (err != ESP_OK) {
-        color_temp = 0;
-    } else if (color_temp < -16) {
-        color_temp = -16;
-    } else if (color_temp > 16) {
-        color_temp = 16;
+        color_temp = DEFAULT_COLOR_TEMP;
     }
 
-    ESP_LOGI(TAG, "color temp: %u", color_temp);
+    ESP_LOGI(TAG, "color temp: %u, (%u/255 of white is warm white)", color_temp,
+             color_temp);
 
     initial_fade_start = xTaskGetTickCount();
 
     ESP_LOGI(TAG, "initial_fade_start: %d", initial_fade_start);
     ESP_LOGI(TAG, "portTICK_PERIOD_MS: %d", portTICK_PERIOD_MS);
 
-    five_color_fade(0, 0, 0, cold_brightness(actual_brightness),
-                    warm_brightness(actual_brightness),
-                    initial_fade_duration_ms - 10);
+    actual_brightness = target_brightness;
+    update_white_brightness();
+    five_color_fade(0, 0, 0, cold_white_brightness, warm_white_brightness,
+                    FADE_DURATION_MS - 10);
 }
 
 void led_run() {
@@ -368,7 +381,8 @@ void led_run() {
             }
         } else {
             ESP_LOGI(TAG, "tuya_mdev_test1 not found");
-            xTaskCreate(&low_light, "low_light", 4096, NULL, 5, NULL);
+            xTaskCreate(&low_light_illuminate, "low_light", 4096, NULL, 5,
+                        NULL);
         }
     } else if (aging_minutes == 50) {
         wifi_scan("tuya_mdev_test2", true, &found, &ap);
