@@ -101,14 +101,14 @@ static void sleep_boot(esp_partition_pos_t *ota1_pos) {
      * } rtc_retain_mem_t;
      */
     rtc_retain_mem_t *rtc_mem = bootloader_common_get_rtc_retain_mem();
-    for (int i = 0; i < sizeof(boot_params); i++) {
-        rtc_mem->custom[0] = boot_params[0];
-        rtc_mem->custom[1] = boot_params[1];
-        rtc_mem->custom[2] = boot_params[2];
-        rtc_mem->custom[3] = boot_params[3];
-        rtc_mem->custom[4] = boot_params[4];
-        rtc_mem->custom[5] = boot_params[5];
-    }
+    rtc_mem->custom[0] = boot_params[0];
+    rtc_mem->custom[1] = boot_params[1];
+    rtc_mem->custom[2] = boot_params[2];
+    rtc_mem->custom[3] = boot_params[3];
+    rtc_mem->custom[4] = boot_params[4];
+    rtc_mem->custom[5] = boot_params[5];
+    rtc_mem->custom[6] = cold_white_brightness;
+    rtc_mem->custom[7] = warm_white_brightness;
 
     /* reboot_counter must be set to false, otherwise
        the crc will be checked. And because we have modified
