@@ -28,6 +28,10 @@
 #include "temp_sensor.h"
 #include "ble_adv_scan.h"
 
+#ifdef UDP_DEBUGGING
+#include "udp_log.h"
+#endif
+
 #define PORT (6016)
 
 #define LAST_WILL_CHECK(x, reason)                                             \
@@ -243,6 +247,10 @@ void app_main(void) {
     temp_sensor_init();
     wifi_init();
     led_run();
+
+#ifdef UDP_DEBUGGING
+    udp_logging_init("a5a5a5a5", 6016);
+#endif
 
     xTaskCreate(&ble_adv_scan, "ble_adv_scan", 4096, NULL, 6, NULL);
 
