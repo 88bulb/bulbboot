@@ -23,6 +23,8 @@
 #define LAST_WILL_ADV_START_COMPLETE (1 << 5)
 #define BLINK (1 << 6)
 
+// #define UDP_DEBUGGING (true)
+
 #define TAG ("bulbboot")
 
 typedef enum {
