@@ -33,10 +33,9 @@ static esp_err_t update_aging_minutes(uint8_t minutes) {
 }
 
 static void update_white_brightness() {
+    cold_white_brightness = actual_brightness;
     warm_white_brightness =
-        (uint8_t)((int)actual_brightness * (int)color_temp / 255);
-    cold_white_brightness =
-        (uint8_t)((int)actual_brightness * (int)(255 - color_temp) / 255);
+        (uint8_t)((int)actual_brightness * (int)color_temp / 100);
 }
 
 static void five_color_set_duty(uint32_t r, uint32_t g, uint32_t b, uint32_t c,
@@ -352,10 +351,12 @@ void led_init() {
     err = nvs_get_u8(nvs, "color_temp", &color_temp);
     if (err != ESP_OK) {
         color_temp = DEFAULT_COLOR_TEMP;
+    } else if (color_temp > 100) {
+        color_temp = 100;
     }
 
-    ESP_LOGI(TAG, "color temp: %u, (%u/255 of white is warm white)", color_temp,
-             color_temp);
+    ESP_LOGI(TAG, "color temp: %u%%, (ratio of warm white / cold white)",
+             color_temp, color_temp);
 
     initial_fade_start = xTaskGetTickCount();
 
