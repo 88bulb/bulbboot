@@ -8,10 +8,10 @@
 #define ABSOLUTE_HIGHEST_TEMP (125)
 
 /* The upper bound of highest_temp.  */
-#define ALLOWED_HIGHEST_TEMP (115)
+#define ALLOWED_HIGHEST_TEMP (120)
 
 /* If no highest_temp is set by nvs, use this value */
-#define DEFAULT_HIGHEST_TEMP (105)
+#define DEFAULT_HIGHEST_TEMP (112)
 
 /* When dynamic brightness is enabled, the finally stabilized brightness is not
  * influenced by initial setting. However, too high an initial value will
@@ -22,7 +22,7 @@
 #define ABSOLUTE_HIGHEST_BRIGHTNESS (192)
 
 /* Default (cold white) brightness if no value stored in nvs. This value is
- * suitable for DEFAULT_HIGHEST_TEMP set to 105 (0x69).
+ * suitable for DEFAULT_HIGHEST_TEMP set to 112 (0x70).
  */
 #define DEFAULT_BRIGHTNESS (120)
 

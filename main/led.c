@@ -137,7 +137,7 @@ static void aging_test1() {
 
     if (aging_minutes < 40) {
         ESP_LOGI(TAG, "aging warm white led at full brightness");
-        five_color_set_duty(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS);
+        five_color_set_duty(0, 0, 0, 0, TESTING_WHITE_BRIGHTNESS - 16);
         do {
             ESP_LOGI(TAG, "%u minutes left", 40 - aging_minutes);
             vTaskDelay(60 * 1000 / portTICK_PERIOD_MS);
@@ -231,7 +231,7 @@ static void illuminate(void *params) {
         five_color_set_duty(0, 0, 0, cold_white_brightness,
                             warm_white_brightness);
 
-        if (temp > ABSOLUTE_HIGHEST_TEMP - 5) {
+        if (temp > ABSOLUTE_HIGHEST_TEMP - 3) {
             wait = 15 * sec;
         } else if (temp - highest_temp > 2) {
             wait = 60 * sec;
