@@ -19,15 +19,15 @@
  * limit the initial setting by this value. It is the upper bound of initial
  * setting of brightness.
  */
-#define ABSOLUTE_HIGHEST_BRIGHTNESS (128)
+#define ABSOLUTE_HIGHEST_BRIGHTNESS (255)
 
 /* Default brightness if no nvs value stored. This value is suitable for
  * DEFAULT_HIGHEST_TEMP set to 105 (0x69).
  */
-#define DEFAULT_BRIGHTNESS (80)
+#define DEFAULT_BRIGHTNESS (176)
 
 /* Default color temperature if no nvs value provided. Slightly cold. */
-#define DEFAULT_COLOR_TEMP (80)
+#define DEFAULT_COLOR_TEMP (32)
 
 /* Brightness used for cold white and warm white during aging test. */
 #define TESTING_WHITE_BRIGHTNESS (224)
