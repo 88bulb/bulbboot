@@ -19,7 +19,7 @@
  * limit the initial setting by this value. It is the upper bound of initial
  * setting of brightness.
  */
-#define ABSOLUTE_HIGHEST_BRIGHTNESS (255)
+#define ABSOLUTE_HIGHEST_BRIGHTNESS (192)
 
 /* Default (cold white) brightness if no value stored in nvs. This value is
  * suitable for DEFAULT_HIGHEST_TEMP set to 105 (0x69).

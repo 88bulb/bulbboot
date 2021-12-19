@@ -22,7 +22,6 @@
 #include "temp_sensor.h"
 
 static uint8_t seq_num = 0x00;
-static const uint8_t adv_type = 0x00; // bulbboot adv
 
 /**
  * - b0:1b:b0:07 (magic, 4 bytes)
