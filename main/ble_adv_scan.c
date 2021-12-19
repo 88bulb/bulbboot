@@ -242,8 +242,8 @@ void ble_adv_scan(void *params) {
             adv_mfr_data[i++] = 0x06;
             adv_mfr_data[i++] = 0x03;
             adv_mfr_data[i++] = highest_temp;
-            adv_mfr_data[i++] = color_temp;
             adv_mfr_data[i++] = target_brightness;
+            adv_mfr_data[i++] = color_temp;
             adv_mfr_data[i++] = cold_white_brightness;
             adv_mfr_data[i++] = warm_white_brightness;
         }

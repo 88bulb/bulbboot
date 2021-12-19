@@ -24,7 +24,7 @@
 /* Default (cold white) brightness if no value stored in nvs. This value is
  * suitable for DEFAULT_HIGHEST_TEMP set to 112 (0x70).
  */
-#define DEFAULT_BRIGHTNESS (112)
+#define DEFAULT_BRIGHTNESS (115)
 
 /* Default color temperature if no nvs value provided. 20% warm:code ratio. */
 #define DEFAULT_COLOR_TEMP (20)
