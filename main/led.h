@@ -11,7 +11,7 @@
 #define ALLOWED_HIGHEST_TEMP (120)
 
 /* If no highest_temp is set by nvs, use this value */
-#define DEFAULT_HIGHEST_TEMP (112)
+#define DEFAULT_HIGHEST_TEMP (110)
 
 /* When dynamic brightness is enabled, the finally stabilized brightness is not
  * influenced by initial setting. However, too high an initial value will

@@ -217,7 +217,7 @@ static void illuminate(void *params) {
     xEventGroupSetBits(ev, BOOTABLE);
     led_illuminating = true;
     while (1) {
-        if (temp >= ABSOLUTE_HIGHEST_TEMP) {
+        if (temp > ABSOLUTE_HIGHEST_TEMP) {
             actual_brightness = LOWEST_LIGHT_BRIGHTNESS;
         } else if (temp <= highest_temp &&
                    actual_brightness < target_brightness) {
@@ -231,12 +231,14 @@ static void illuminate(void *params) {
         five_color_set_duty(0, 0, 0, cold_white_brightness,
                             warm_white_brightness);
 
-        if (temp > ABSOLUTE_HIGHEST_TEMP - 3) {
-            wait = 15 * sec;
-        } else if (temp - highest_temp > 2) {
-            wait = 60 * sec;
+        if (temp > ABSOLUTE_HIGHEST_TEMP - 5 || temp < highest_temp - 5) {
+            wait = 1 * sec;
+        } else if (temp > ALLOWED_HIGHEST_TEMP - 5) {
+            wait = 4 * sec;
+        } else if (temp > highest_temp + 2) {
+            wait = 16 * sec;
         } else {
-            wait = 240 * sec;
+            wait = 64 * sec;
         }
 
         xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);
