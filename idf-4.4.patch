@@ -1,3 +1,15 @@
+diff --git a/components/driver/esp32c3/rtc_tempsensor.c b/components/driver/esp32c3/rtc_tempsensor.c
+index d77b75e902..baec73bc3a 100644
+--- a/components/driver/esp32c3/rtc_tempsensor.c
++++ b/components/driver/esp32c3/rtc_tempsensor.c
+@@ -111,6 +111,7 @@ esp_err_t temp_sensor_stop(void)
+ {
+     APB_SARADC.apb_tsens_ctrl.tsens_pu = 0;
+     APB_SARADC.apb_tsens_ctrl2.tsens_clk_sel = 0;
++    tsens_hw_state = TSENS_HW_STATE_UNCONFIGURED;
+     return ESP_OK;
+ }
+ 
 diff --git a/components/fatfs/src/ffconf.h b/components/fatfs/src/ffconf.h
 index 6578122c5f..59681a56f0 100644
 --- a/components/fatfs/src/ffconf.h
