@@ -199,6 +199,7 @@ static esp_ble_scan_params_t scan_params = {
     .scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE};
 
 void ble_adv_scan(void *params) {
+    int i;
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
     ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
@@ -210,14 +211,14 @@ void ble_adv_scan(void *params) {
     ESP_ERROR_CHECK(esp_ble_gap_set_scan_params(&scan_params));
 
     while (1) {
-        int i = 0;
+        i = 0;
         adv_mfr_data[i++] = 0xb0; // magic
         adv_mfr_data[i++] = 0x1b;
         adv_mfr_data[i++] = 0xca;
         adv_mfr_data[i++] = 0x57;
         adv_mfr_data[i++] = seq_num++;
-        adv_mfr_data[i++] = adv_type;
 
+        // device info
         adv_mfr_data[i++] = 0x06;
         adv_mfr_data[i++] = ADT_DEVICE_INFO;
         adv_mfr_data[i++] = SOFTWARE_ID;
@@ -226,24 +227,26 @@ void ble_adv_scan(void *params) {
         adv_mfr_data[i++] = version[2];
         adv_mfr_data[i++] = version[3];
 
+        // aging
         adv_mfr_data[i++] = 0x02;
         adv_mfr_data[i++] = 0x01;
         adv_mfr_data[i++] = aging_minutes;
 
-        if (temp > 0) {
-            adv_mfr_data[i++] = 0x03;
-            adv_mfr_data[i++] = 0x02;
-            adv_mfr_data[i++] = temp;
-            adv_mfr_data[i++] = tsens_config.dac_offset;
-        }
+        // temperature
+        adv_mfr_data[i++] = 0x03;
+        adv_mfr_data[i++] = 0x02;
+        adv_mfr_data[i++] = temp;
+        adv_mfr_data[i++] = tsens_config.dac_offset;
 
+        // illuminating
         if (led_illuminating) {
-            adv_mfr_data[i++] = 0x05;
+            adv_mfr_data[i++] = 0x06;
             adv_mfr_data[i++] = 0x03;
             adv_mfr_data[i++] = highest_temp;
+            adv_mfr_data[i++] = color_temp;
             adv_mfr_data[i++] = target_brightness;
-            adv_mfr_data[i++] = actual_brightness;
-            adv_mfr_data[i++] = (uint8_t)color_temp;
+            adv_mfr_data[i++] = cold_white_brightness;
+            adv_mfr_data[i++] = warm_white_brightness;
         }
 
         adv_data.manufacturer_len = i;
@@ -268,19 +271,34 @@ void ble_adv_scan(void *params) {
             break;
     }
 
-    adv_mfr_data[5] = seq_num++;
-    adv_mfr_data[6] = adv_type;
-    adv_mfr_data[7] = 0x04; // length
-    adv_mfr_data[8] = 0xe0; // type, last will
-    adv_mfr_data[9] = last_will_reason;
-    adv_mfr_data[10] = last_will_error;
-    adv_mfr_data[11] = last_will_errno;
-    adv_data.manufacturer_len = 12;
+    i = 0;
+    adv_mfr_data[i++] = 0xb0; // magic
+    adv_mfr_data[i++] = 0x1b;
+    adv_mfr_data[i++] = 0xca;
+    adv_mfr_data[i++] = 0x57;
+    adv_mfr_data[i++] = seq_num++;
+
+    // device info
+    adv_mfr_data[i++] = 0x06;
+    adv_mfr_data[i++] = ADT_DEVICE_INFO;
+    adv_mfr_data[i++] = SOFTWARE_ID;
+    adv_mfr_data[i++] = version[0];
+    adv_mfr_data[i++] = version[1];
+    adv_mfr_data[i++] = version[2];
+    adv_mfr_data[i++] = version[3];
+
+    // last will
+    adv_mfr_data[i++] = 0x04; // length
+    adv_mfr_data[i++] = 0xe0; // type, last will
+    adv_mfr_data[i++] = last_will_reason;
+    adv_mfr_data[i++] = last_will_error;
+    adv_mfr_data[i++] = last_will_errno;
+    adv_data.manufacturer_len = i;
 
     ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
     xEventGroupWaitBits(ev, LAST_WILL_ADV_START_COMPLETE, pdFALSE, pdFALSE,
                         portMAX_DELAY);
 
-    vTaskDelay(400 / portTICK_PERIOD_MS);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
     esp_restart();
 }
