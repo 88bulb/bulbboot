@@ -191,7 +191,11 @@ static esp_ble_scan_params_t scan_params = {
     .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
     .scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
     .scan_interval = 0x50,
+#ifdef UDP_DEBUGGING
+    .scan_window = 0x30,
+#else
     .scan_window = 0x50,
+#endif
     .scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE};
 
 void ble_adv_scan(void *params) {
@@ -227,9 +231,10 @@ void ble_adv_scan(void *params) {
         adv_mfr_data[i++] = aging_minutes;
 
         if (temp > 0) {
-            adv_mfr_data[i++] = 0x02;
+            adv_mfr_data[i++] = 0x03;
             adv_mfr_data[i++] = 0x02;
             adv_mfr_data[i++] = temp;
+            adv_mfr_data[i++] = tsens_config.dac_offset;
         }
 
         if (led_illuminating) {
