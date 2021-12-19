@@ -232,10 +232,12 @@ static void illuminate(void *params) {
         five_color_set_duty(0, 0, 0, cold_white_brightness,
                             warm_white_brightness);
 
-        if (temp > ABSOLUTE_HIGHEST_TEMP - 10) {
+        if (temp > ABSOLUTE_HIGHEST_TEMP - 5) {
             wait = 15 * sec;
+        } else if (temp - highest_temp > 2) {
+            wait = 60 * sec;
         } else {
-            wait = 120 * sec;
+            wait = 240 * sec;
         }
 
         xEventGroupWaitBits(ev, BLINK, pdFALSE, pdFALSE, wait);

@@ -11,7 +11,7 @@
 #define ALLOWED_HIGHEST_TEMP (115)
 
 /* If no highest_temp is set by nvs, use this value */
-#define DEFAULT_HIGHEST_TEMP (105)
+#define DEFAULT_HIGHEST_TEMP (110)
 
 /* When dynamic brightness is enabled, the finally stabilized brightness is not
  * influenced by initial setting. However, too high an initial value will
@@ -24,10 +24,10 @@
 /* Default brightness if no nvs value stored. This value is suitable for
  * DEFAULT_HIGHEST_TEMP set to 105 (0x69).
  */
-#define DEFAULT_BRIGHTNESS (176)
+#define DEFAULT_BRIGHTNESS (160)
 
 /* Default color temperature if no nvs value provided. Slightly cold. */
-#define DEFAULT_COLOR_TEMP (32)
+#define DEFAULT_COLOR_TEMP (40)
 
 /* Brightness used for cold white and warm white during aging test. */
 #define TESTING_WHITE_BRIGHTNESS (224)
