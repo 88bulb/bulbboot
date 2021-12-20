@@ -234,11 +234,11 @@ static void illuminate(void *params) {
         /* this algorithm should not be related to
          * ABSOLUTE_HIGHEST_TEMP or ALLOWED_HIGHEST_TEMP
          */
-        if (temp > highest_temp + 6 || temp < highest_temp - 6) {
+        if (temp > highest_temp + 5 || temp < highest_temp - 5) {
             wait = 1 * sec;
-        } else if (temp > highest_temp + 4 || temp < highest_temp - 4) {
+        } else if (temp > highest_temp + 3 || temp < highest_temp - 3) {
             wait = 4 * sec;
-        } else if (temp > highest_temp + 2 || temp < highest_temp - 2) {
+        } else if (temp > highest_temp + 1 || temp < highest_temp - 1) {
             wait = 16 * sec;
         } else {
             wait = 64 * sec;
