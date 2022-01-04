@@ -17,7 +17,7 @@ static int udp_logging_vprintf(const char *str, va_list l) {
     return len;
 }
 
-int udp_logging_init(const char *ssid_token, unsigned long port) {
+int udp_logging_init(char *ssid_token, unsigned long port) {
     esp_err_t err;
     bool found = false;
     wifi_ap_record_t ap = {0};

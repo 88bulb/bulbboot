@@ -1,0 +1,118 @@
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0x1 (POWERON),boot:0xd (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd6100,len:0x1794
+load:0x403ce000,len:0x934
+load:0x403d0000,len:0x2eb0
+entry 0x403ce000
+I (30) boot: ESP-IDF v4.4-beta1-177-ge104dd7f27-dirt 2nd stage bootloader
+I (30) boot: compile time 21:18:07
+I (30) boot: chip revision: 3
+I (34) boot.esp32c3: SPI Speed      : 80MHz
+I (39) boot.esp32c3: SPI Mode       : DIO
+I (43) boot.esp32c3: SPI Flash Size : 4MB
+I (48) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (57) boot: ## Label            Usage          Type ST Offset   Length
+I (65) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (72) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (79) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (87) boot:  3 ota_0            OTA app          00 10 00010000 000f0000
+I (94) boot:  4 ota_1            OTA app          00 11 00100000 00200000
+I (102) boot:  5 data             Unknown data     01 06 00300000 00100000
+I (109) boot: End of partition table
+I (114) boot: No factory image, trying OTA 0
+I (119) esp_image: segment 0: paddr=00010020 vaddr=3c0a0020 size=1f230h (127536) map
+I (146) esp_image: segment 1: paddr=0002f258 vaddr=3fc8e800 size=00dc0h (  3520) load
+I (147) esp_image: segment 2: paddr=00030020 vaddr=42000020 size=9c654h (640596) map
+I (248) esp_image: segment 3: paddr=000cc67c vaddr=3fc8f5c0 size=02634h (  9780) load
+I (250) esp_image: segment 4: paddr=000cecb8 vaddr=40380000 size=0e690h ( 59024) load
+I (265) esp_image: segment 5: paddr=000dd350 vaddr=50000000 size=00004h (     4) load
+I (265) esp_image: segment 6: paddr=000dd35c vaddr=50000008 size=00010h (    16) load
+I (275) boot: Loaded app from partition at offset 0x10000
+I (311) boot: Set actual ota_seq=1 in otadata[0]
+I (311) boot: Disabling RNG early entropy source...
+I (322) cpu_start: Pro cpu up.
+I (330) cpu_start: Pro cpu start user code
+I (331) cpu_start: cpu freq: 160000000
+I (331) cpu_start: Application information:
+I (333) cpu_start: Project name:     bulbboot
+I (338) cpu_start: App version:      010000c1
+I (343) cpu_start: Compile time:     Dec 20 2021 21:18:00
+I (349) cpu_start: ELF file SHA256:  3169bb57f10aef59...
+I (355) cpu_start: ESP-IDF:          v4.4-beta1-177-ge104dd7f27-dirt
+I (363) heap_init: Initializing. RAM available for dynamic allocation:
+I (370) heap_init: At 3FC98270 len 00027D90 (159 KiB): DRAM
+I (376) heap_init: At 3FCC0000 len 0001F060 (124 KiB): STACK/DRAM
+I (383) heap_init: At 50000018 len 00001FC8 (7 KiB): RTCRAM
+I (389) spi_flash: detected chip: generic
+I (394) spi_flash: flash io: dio
+I (398) sleep: Configure to isolate all GPIO pins in sleep state
+I (404) sleep: Enable automatic switching of GPIO sleep configuration
+I (412) coexist: coexist rom version 9387209
+I (417) cpu_start: Starting scheduler.
+I (435) bulbboot: aging minutes: 0
+I (435) bulbboot: highest temp: 115
+I (435) bulbboot: target brightness: 128
+I (435) bulbboot: color temp: 20%, (ratio of warm white / cold white)
+I (435) bulbboot: initial_fade_start: 1
+I (445) bulbboot: portTICK_PERIOD_MS: 10
+I (445) bulbboot: Iterating through partitions...
+I (455) bulbboot: found app partition 'ota_0' at offset 0x10000 with size 0xf0000
+I (465) bulbboot: found app partition 'ota_1' at offset 0x100000 with size 0x200000
+I (475) bulbboot: found data partition 'nvs' at offset 0x9000 with size 0x4000
+I (475) bulbboot: found data partition 'otadata' at offset 0xd000 with size 0x2000
+I (485) bulbboot: found data partition 'phy_init' at offset 0xf000 with size 0x1000
+I (495) bulbboot: found data partition 'data' at offset 0x300000 with size 0x100000
+I (505) bulbboot: app name: bulbboot
+I (505) bulbboot: app version: 010000c1
+I (515) bulbboot: idf version: v4.4-beta1-177-ge104dd7f27-dirt
+I (515) bulbboot: compile date: Dec 20 2021
+I (525) bulbboot: compile time: 21:18:00
+I (525) bulbboot: Temperature sensor started
+I (535) pp: pp rom version: 9387209
+I (535) net80211: net80211 rom version: 9387209
+I (555) wifi:wifi driver task: 3fca1fcc, prio:23, stack:6656, core=0
+I (555) system_api: Base MAC address is not set
+I (555) system_api: read default base MAC address from EFUSE
+I (565) wifi:wifi firmware version: 7e67c79
+I (565) wifi:wifi certification version: v7.0
+I (565) wifi:config NVS flash: enabled
+I (575) wifi:config nano formating: disabled
+I (575) wifi:Init data frame dynamic rx buffer num: 32
+I (585) wifi:Init management frame dynamic rx buffer num: 32
+I (585) wifi:Init management short buffer num: 32
+I (595) wifi:Init dynamic tx buffer num: 32
+I (595) wifi:Init static tx FG buffer num: 2
+I (595) wifi:Init static rx buffer size: 1600
+I (605) wifi:Init static rx buffer num: 10
+I (605) wifi:Init dynamic rx buffer num: 32
+I (615) wifi_init: rx ba win: 6
+I (615) wifi_init: tcpip mbox: 32
+I (615) wifi_init: udp mbox: 6
+I (625) wifi_init: tcp mbox: 6
+I (625) wifi_init: tcp tx win: 5744
+I (625) wifi_init: tcp rx win: 5744
+I (635) wifi_init: tcp mss: 1440
+I (635) wifi_init: WiFi IRAM OP enabled
+I (645) wifi_init: WiFi RX IRAM OP enabled
+I (645) phy_init: phy_version 906,ed5370c,Nov  8 2021,18:01:10
+W (655) phy_init: failed to load RF calibration data (0x1102), falling back to full calibration
+I (705) wifi:mode : sta (84:f7:03:32:a5:f8)
+I (705) wifi:enable tsf
+I (1535) bulbboot: s_deltaT = -58.000000
+I (1535) bulbboot: temp: 83 (raw), 21.683800 (float), 21 (uint8), dac_offset: 2
+I (2815) wifi:flush txq
+I (2815) wifi:stop sw txq
+I (2815) wifi:lmac stop hw txq
+I (2815) bulbboot: tuya_mdev_test1 not found
+I (2815) bulbboot: low light illuminating
+I (2815) bulbboot: wait_initial_fade, current tick: 239
+I (2825) bulbboot: fade already finished
+I (2825) BTDM_INIT: BT controller compile version [3e61eea]
+I (2835) BTDM_INIT: Bluetooth MAC: 84:f7:03:32:a5:fa
+
+I (2855) bulbboot: ble scan started
+I (2855) bulbboot: ble adv started
